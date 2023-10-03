@@ -22,7 +22,7 @@ if __name__ == "__main__":
     print(f"\n[HW1 P7–10]\nPLA statistics over {n_runs:,} runs:")
     for N in (10, 100):
         iters, prob = np.mean(
-            [perceptron(N, target_function_random_line(rng=rng), rng=rng) 
+            [perceptron(N, target_function_random_line(rng=rng), rng=rng)
              for _ in range(n_runs)], 
             axis=0
         )
