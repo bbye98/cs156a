@@ -28,7 +28,7 @@ if __name__ == "__main__":
     print(f"\n[HW2 P1–2]\nCoin flip statistics over {n_trials:,} trials:")
     nus = coin_flip(n_trials)
     for label, nu in zip(labels, nus.mean(axis=1)):
-        print(f"  {label} coin: {nu=:.5f}")
+        print(f"  {label}: {nu=:.5f}")
 
     print("\nHoeffding's inequality:")
     epss = np.linspace(0, 0.5, 6)
@@ -78,16 +78,16 @@ if __name__ == "__main__":
     # problems 8–10
     f = target_function_hw2()
     N = N_test = n_runs = 1_000
-    noise = 0.1
+    noise = (0.1, lambda y: -y)
     print("\n[HW2 P8–10]\nLinear regression (with linear feature vector)",
           f"statistics over {n_runs:,} runs:")
     E_in = np.mean(
         [linear_regression(N, f, noise=noise)[0] for _ in range(n_runs)]
     )
-    print(f"  {N=:,}, {noise=:.3f}, {E_in=:.3f}")
+    print(f"  {N=:,}, noise={noise[0]:.3f}, {E_in=:.3f}")
 
-    transform = lambda x: np.hstack((x, x[:, 1:2] * x[:, 2:], x[:, 1:2] ** 2,
-                                     x[:, 2:] ** 2))
+    transform = lambda x: np.hstack((x, x[:, 1:2] * x[:, 2:], x[:, 1:2]**2,
+                                     x[:, 2:]**2))
     gs = np.array(((-1, -0.05, 0.08, 0.13, 1.5, 1.5), 
                    (-1, -0.05, 0.08, 0.13, 1.5, 15),
                    (-1, -0.05, 0.08, 0.13, 15, 1.5),
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     print("\nLinear regression (with nonlinear feature vector) hypothesis",
           f"over {n_runs:,} runs:")
     w = np.mean(
-        [linear_regression(N, f, transform=transform, rng=rng, noise=noise,
+        [linear_regression(N, f, transform=transform, noise=noise, rng=rng,
                            hyp=True)[0]
          for _ in range(n_runs)],
         axis=0
@@ -107,11 +107,11 @@ if __name__ == "__main__":
     for i in range(n_runs):
         x_test, y_test = generate_data(N_test, f, rng=rng)
         x_test = transform(x_test)
-        y_test[rng.choice(N_test, round(noise * N_test), False)] *= -1
+        y_test[rng.choice(N_test, round(noise[0] * N_test), False)] *= -1
         h_test = np.sign(x_test @ w)
         probs[i] = validate_binary(gs.T, x_test, h_test[:, None])
         Es_out[i] = np.count_nonzero(h_test != y_test) / N_test
     for i, (g, p) in enumerate(zip(gs, probs.mean(axis=0))):
         print(f"  g{i + 1}=[", ", ".join(f"{v:.2g}" for v in g),
-              f"] (prob={p:.5f})", sep="")
-    print(f"  {N=:,}, {noise=:.3f}, E_out={Es_out.mean():.3f}")
+              f"] (prob={1 - p:.5f})", sep="")
+    print(f"  {N=:,}, noise={noise[0]:.3f}, E_out={Es_out.mean():.3f}")
