@@ -13,7 +13,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, pathlib.Path(__file__).resolve().parent)
-from cs156a import target_function_random_line, perceptron
+from cs156a import target_function_random_line, validate_binary, perceptron
     
 if __name__ == "__main__":
     # problems 7–10
@@ -22,7 +22,8 @@ if __name__ == "__main__":
     print(f"\n[HW1 P7–10]\nPLA statistics over {n_runs:,} runs:")
     for N in (10, 100):
         iters, prob = np.mean(
-            [perceptron(N, target_function_random_line(rng=rng), rng=rng)
+            [perceptron(N, target_function_random_line(rng=rng), 
+                        validate_binary, rng=rng)
              for _ in range(n_runs)], 
             axis=0
         )

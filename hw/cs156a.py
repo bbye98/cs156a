@@ -6,7 +6,7 @@ import numpy as np
 
 def target_function_random_line(
         *, rng: np.random.Generator = None, seed: int = None
-    ) -> Callable[[float | np.ndarray[float]], float | np.ndarray[float]]:
+    ) -> Callable[[np.ndarray[float]], np.ndarray[float]]:
 
     """
     Implements the target function f(x_1, x_2) = m * x_1 + b, where m
@@ -39,7 +39,8 @@ def target_function_random_line(
     )
 
 def generate_data(
-        N: int, f: Callable, d: int = 2, lb: float = -1.0, ub: float = 1.0, *,
+        N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]], 
+        d: int = 2, lb: float = -1.0, ub: float = 1.0, *,
         rng: np.random.Generator = None, seed: int = None
     ) -> tuple[np.ndarray[float], np.ndarray[float]]:
 
@@ -114,8 +115,12 @@ def validate_binary(
     return np.count_nonzero(np.sign(x @ w) != y, axis=0) / x.shape[0]
 
 def perceptron(
-        N: int, f: Callable, *, w: np.ndarray[float] = None, 
-        N_test: int = 1_000, rng: np.random.Generator = None, seed: int = None
+        N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]], 
+        vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
+                     np.ndarray[float]],
+        *, w: np.ndarray[float] = None, x: np.ndarray[float] = None, 
+        y: np.ndarray[float] = None, N_test: int = 1_000,
+        rng: np.random.Generator = None, seed: int = None
     ) -> tuple[int, float]:
     
     """
@@ -130,9 +135,18 @@ def perceptron(
     f : `function`
         Target function f as a function of the inputs x.
 
+    vf : `function`
+        Validation function as a function of w, x, and y.
+
     w : `numpy.ndarray`, keyword-only, optional
         Hypothesis w. If not provided, a vector is initialized with all
         zeros.
+
+    x : `numpy.ndarray`, keyword-only, optional
+        Inputs x_n.
+
+    y : `numpy.ndarray`, keyword-only, optional
+        Outputs y_n.
 
     N_test : `int`, keyword-only, default: 1_000
         Number of random test data points.
@@ -156,7 +170,11 @@ def perceptron(
 
     if rng is None:
         rng = np.random.default_rng(seed)
-    x, y = generate_data(N, f, rng=rng)
+    if y is None:
+        if x is None:
+            x, y = generate_data(N, f, rng=rng)
+        else:
+            y = f(x)
     if w is None:
         w = np.zeros(x.shape[1], dtype=float)
     iters = 0
@@ -167,7 +185,7 @@ def perceptron(
         i = np.random.choice(wrong)
         w += y[i] * x[i]
         iters += 1
-    return iters, validate_binary(w, *generate_data(N_test, f, rng=rng))
+    return iters, vf(w, *generate_data(N_test, f, rng=rng))
 
 ### HOMEWORK 2 ################################################################
 
@@ -209,11 +227,12 @@ def coin_flip(
         rng = np.random.default_rng(seed)
     heads = np.count_nonzero(
         rng.uniform(size=(n_trials, n_coins, n_flips)) < 0.5, axis=2
-    )  # [0.0, 0.5) is heads, [0.5, 1.0) is tails
+    ) # [0.0, 0.5) is heads, [0.5, 1.0) is tails
+    i = np.arange(n_trials)
     return np.stack((
         heads[:, 0],
-        heads[np.arange(n_trials), rng.integers(n_coins, size=n_trials)],
-        heads[np.arange(n_trials), np.argmin(heads, axis=1)],
+        heads[i, rng.integers(n_coins, size=n_trials)],
+        heads[i, np.argmin(heads, axis=1)],
     )) / n_flips
 
 def hoeffding_inequality(
@@ -237,8 +256,14 @@ def hoeffding_inequality(
     return 2 * M * np.exp(-2 * eps ** 2 * N)
 
 def linear_regression(
-        N: int, f: Callable, *, transform: Callable = None, noise: float = 0.0,
-        N_test: int = 1_000, rng: np.random.Generator = None, seed: int = None, 
+        N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]],        
+        vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
+                     np.ndarray[float]],
+        *, x: np.ndarray[float] = None, y: np.ndarray[float] = None,
+        transform: Callable[[np.ndarray[float]], np.ndarray[float]] = None, 
+        noise: tuple[float, 
+                     Callable[[np.ndarray[float]], np.ndarray[float]]] = None,
+        N_test: int = 1_000, rng: np.random.Generator = None, seed: int = None,
         hyp: bool = False) -> tuple[np.ndarray[float], float, float]:
 
     """
@@ -253,11 +278,25 @@ def linear_regression(
     f : `function`
         Target function f as a function of the inputs x.
 
-    noise : `float`, keyword-only, default: 0.0
-        Fraction of the training set to introduce noise to.
+    vf : `function`
+        Validation function as a function of w, x, and y.
+
+    x : `numpy.ndarray`, keyword-only, optional
+        Inputs x_n. If a nonlinear transformation is expected, the
+        original inputs should be provided here and the transformation
+        function in `transform`.
+
+    y : `numpy.ndarray`, keyword-only, optional
+        Outputs y_n. If noise is to be introduced, the original outputs
+        should be provided here, and the noise fraction and function in
+        `noise`.
 
     transform : `function`, keyword-only, default: None
         Nonlinear transformation function for the inputs x.
+
+    noise : `tuple`, keyword-only, default: 0.0
+        Fraction of outputs y to introduce noise to and the
+        transformation function.
 
     N_test : `int`, keyword-only, default: 1_000
         Number of random test data points.
@@ -286,23 +325,27 @@ def linear_regression(
 
     if rng is None:
         rng = np.random.default_rng(seed)
-    x, y = generate_data(N, f, rng=rng)
+    if y is None:
+        if x is None:
+            x, y = generate_data(N, f, rng=rng)
+        else:
+            y = f(x)
     if transform:
         x = transform(x)
     if noise:
-        y[rng.choice(N, round(noise * N), False)] *= -1
+        i = rng.choice(N, round(noise[0] * N), False)
+        y[i] = noise[1](y[i])
     w = np.linalg.pinv(x) @ y
     
     x_test, y_test = generate_data(N_test, f, rng=rng)
     if transform:
         x_test = transform(x_test)
     if noise:
-        y_test[rng.choice(N_test, round(noise * N_test), False)] *= -1
-    return (w, validate_binary(w, x, y), 
-            validate_binary(w, x_test, y_test))[1 - hyp:]
+        i = rng.choice(N_test, round(noise[0] * N_test), False)
+        y_test[i] = noise[1](y_test[i])
+    return (w, vf(w, x, y), vf(w, x_test, y_test))[1 - hyp:]
 
-def target_function_hw2(
-    ) -> Callable[[float | np.ndarray[float]], float | np.ndarray[float]]:
+def target_function_hw2() -> Callable[[np.ndarray[float]], np.ndarray[float]]:
 
     """
     Implements the target function 

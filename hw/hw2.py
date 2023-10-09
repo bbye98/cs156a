@@ -7,26 +7,24 @@ October 9, 2023
 Homework 2
 """
 
-import copy
 import pathlib
 import sys
 
 import numpy as np
 
 sys.path.insert(0, pathlib.Path(__file__).resolve().parent)
-from cs156a import (
-    coin_flip, hoeffding_inequality, 
-    target_function_random_line, perceptron, linear_regression,
-    target_function_hw2, generate_data, validate_binary
-)
+from cs156a import (coin_flip, hoeffding_inequality, 
+                    target_function_random_line, perceptron, linear_regression,
+                    target_function_hw2, generate_data, validate_binary)
 
 if __name__ == "__main__":
     # problems 1–2
+    rng = np.random.default_rng()
     n_trials = 100_000
     n_flips = 10
     labels = ("first", "random", "minimum")
     print(f"\n[HW2 P1–2]\nCoin flip statistics over {n_trials:,} trials:")
-    nus = coin_flip(n_trials)
+    nus = coin_flip(n_trials, rng=rng)
     for label, nu in zip(labels, nus.mean(axis=1)):
         print(f"  {label}: {nu=:.5f}")
 
@@ -49,29 +47,28 @@ if __name__ == "__main__":
         )
 
     # problems 5–7
-    rng = np.random.default_rng()
     N = 100
     n_runs = 1_000
     print(f"\n[HW2 P5–7]\nLinear regression statistics over {n_runs:,} runs:")
     E_in, E_out = np.mean(
-        [linear_regression(N, target_function_random_line(rng=rng), rng=rng)
+        [linear_regression(N, target_function_random_line(rng=rng), 
+                           validate_binary, rng=rng)
          for _ in range(n_runs)], 
         axis=0
     )
     print(f"  {N=:,}, {E_in=:.3f}, {E_out=:.3f}")
 
     N = 10
-    print(
-        "\nPLA (with linear regression hypothesis) statistics over",
-        f"{n_runs:,} runs:"
-    )
+    print("\nPLA (with linear regression hypothesis) statistics over",
+          f"{n_runs:,} runs:")
     iters = np.empty(n_runs, dtype=float)
     for i in range(n_runs):
         f = target_function_random_line(rng=rng)
+        x, y = generate_data(N, f, rng=rng)
         iters[i] = perceptron(
-            N, f,
-            w=linear_regression(N, f, rng=copy.copy(rng), hyp=True)[0], 
-            rng=copy.copy(rng) # ensures same RNG state for PLA and LRA
+            N, f, validate_binary, x=x, y=y, rng=rng,
+            w=linear_regression(N, f, validate_binary, x=x, y=y, rng=rng, 
+                                hyp=True)[0]
         )[0]
     print(f"  {N=:,}, iters={iters.mean():,.0f}")
 
@@ -82,12 +79,13 @@ if __name__ == "__main__":
     print("\n[HW2 P8–10]\nLinear regression (with linear feature vector)",
           f"statistics over {n_runs:,} runs:")
     E_in = np.mean(
-        [linear_regression(N, f, noise=noise)[0] for _ in range(n_runs)]
+        [linear_regression(N, f, validate_binary, noise=noise, rng=rng)[0]
+         for _ in range(n_runs)]
     )
     print(f"  {N=:,}, noise={noise[0]:.3f}, {E_in=:.3f}")
 
-    transform = lambda x: np.hstack((x, x[:, 1:2] * x[:, 2:], x[:, 1:2]**2,
-                                     x[:, 2:]**2))
+    transform = lambda x: np.hstack((x, x[:, 1:2] * x[:, 2:], x[:, 1:2] ** 2,
+                                     x[:, 2:] ** 2))
     gs = np.array(((-1, -0.05, 0.08, 0.13, 1.5, 1.5), 
                    (-1, -0.05, 0.08, 0.13, 1.5, 15),
                    (-1, -0.05, 0.08, 0.13, 15, 1.5),
@@ -96,8 +94,8 @@ if __name__ == "__main__":
     print("\nLinear regression (with nonlinear feature vector) hypothesis",
           f"over {n_runs:,} runs:")
     w = np.mean(
-        [linear_regression(N, f, transform=transform, noise=noise, rng=rng,
-                           hyp=True)[0]
+        [linear_regression(N, f, validate_binary, transform=transform, 
+                           noise=noise, rng=rng, hyp=True)[0]
          for _ in range(n_runs)],
         axis=0
     )
