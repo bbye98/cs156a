@@ -64,7 +64,7 @@ if __name__ == "__main__":
     iters = np.empty(n_runs, dtype=float)
     for i in range(n_runs):
         f = target_function_random_line(rng=rng)
-        x, y = generate_data(N, f, rng=rng)
+        x, y = generate_data(N, f, bias=True, rng=rng)
         iters[i] = perceptron(
             N, f, validate_binary, x=x, y=y, rng=rng,
             w=linear_regression(N, f, validate_binary, x=x, y=y, rng=rng, 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     probs = np.zeros((N_test, 5))
     Es_out = np.zeros(N_test)
     for i in range(n_runs):
-        x_test, y_test = generate_data(N_test, f, rng=rng)
+        x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
         x_test = transform(x_test)
         y_test[rng.choice(N_test, round(noise[0] * N_test), False)] *= -1
         h_test = np.sign(x_test @ w)

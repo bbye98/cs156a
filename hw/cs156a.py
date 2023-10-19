@@ -1,6 +1,7 @@
 from typing import Callable
 
 import numpy as np
+from scipy import optimize
 
 ### HOMEWORK 1 ################################################################
 
@@ -21,7 +22,7 @@ def target_function_random_line(
 
     seed : `int`, keyword-only, optional
         Random seed used to initialize a pseudo-random number generator.
-        Only used if :code:`rng=None`.
+        Only used if `rng=None`.
 
     Returns
     -------
@@ -40,14 +41,13 @@ def target_function_random_line(
 
 def generate_data(
         N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]], 
-        d: int = 2, lb: float = -1.0, ub: float = 1.0, *,
-        rng: np.random.Generator = None, seed: int = None
+        d: int = 2, lb: float = -1.0, ub: float = 1.0, *, 
+        bias: bool = False, rng: np.random.Generator = None, seed: int = None
     ) -> tuple[np.ndarray[float], np.ndarray[float]]:
 
     """
-    Randomly generate a d-dimensional data set D in X = [lb, ub]^d,
-    append a vector of ones as the first column for the constant bias
-    term, and determine its outputs using the target function f.
+    Randomly generate a d-dimensional data set D in X = [lb, ub]^d and
+    determine its outputs using the target function f.
 
     Parameters
     ----------
@@ -66,12 +66,16 @@ def generate_data(
     ub : `float`, default: 1.0
         Data upper bound.
 
+    bias : `bool`, default: False
+        Determines whether a vector of ones is appended as the first
+        column for the constant bias term.
+
     rng : `numpy.random.Generator`, keyword-only, optional
         A NumPy pseudo-random number generator.
 
     seed : `int`, keyword-only, optional
         Random seed used to initialize a pseudo-random number generator.
-        Only used if :code:`rng=None`.
+        Only used if `rng=None`.
 
     Returns
     -------
@@ -84,7 +88,9 @@ def generate_data(
 
     if rng is None:
         rng = np.random.default_rng(seed)
-    x = np.hstack((np.ones((N, 1)), rng.uniform(lb, ub, (N, d))))
+    x = rng.uniform(lb, ub, (N, d))
+    if bias:
+        x = np.hstack((np.ones((N, 1)), x))
     return x, f(x)
 
 def validate_binary(
@@ -156,7 +162,7 @@ def perceptron(
 
     seed : `int`, keyword-only, optional
         Random seed used to initialize a pseudo-random number generator.
-        Only used if :code:`rng=None`.
+        Only used if `rng=None`.
 
     Returns
     -------
@@ -172,7 +178,7 @@ def perceptron(
         rng = np.random.default_rng(seed)
     if y is None:
         if x is None:
-            x, y = generate_data(N, f, rng=rng)
+            x, y = generate_data(N, f, bias=True, rng=rng)
         else:
             y = f(x)
     if w is None:
@@ -185,7 +191,7 @@ def perceptron(
         i = np.random.choice(wrong)
         w += y[i] * x[i]
         iters += 1
-    return iters, vf(w, *generate_data(N_test, f, rng=rng))
+    return iters, vf(w, *generate_data(N_test, f, bias=True, rng=rng))
 
 ### HOMEWORK 2 ################################################################
 
@@ -213,7 +219,7 @@ def coin_flip(
 
     seed : `int`, keyword-only, optional
         Random seed used to initialize a pseudo-random number generator.
-        Only used if :code:`rng=None`.
+        Only used if `rng=None`.
 
     Returns
     -------
@@ -306,7 +312,7 @@ def linear_regression(
 
     seed : `int`, keyword-only, optional
         Random seed used to initialize a pseudo-random number generator.
-        Only used if :code:`rng=None`.
+        Only used if `rng=None`.
 
     hyp : `bool`, keyword-only, default: False
         Determines whether the hypothesis w is returned.
@@ -314,7 +320,7 @@ def linear_regression(
     Returns
     -------
     w : `numpy.ndarray`
-        Hypothesis w. Only available if :code:`hyp=True`.
+        Hypothesis w. Only available if `hyp=True`.
 
     E_in : `float`
         In-sample error E_in.
@@ -327,7 +333,7 @@ def linear_regression(
         rng = np.random.default_rng(seed)
     if y is None:
         if x is None:
-            x, y = generate_data(N, f, rng=rng)
+            x, y = generate_data(N, f, bias=True, rng=rng)
         else:
             y = f(x)
     if transform:
@@ -337,7 +343,7 @@ def linear_regression(
         y[i] = noise[1](y[i])
     w = np.linalg.pinv(x) @ y
     
-    x_test, y_test = generate_data(N_test, f, rng=rng)
+    x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
     if transform:
         x_test = transform(x_test)
     if noise:
@@ -359,3 +365,147 @@ def target_function_hw2() -> Callable[[np.ndarray[float]], np.ndarray[float]]:
     """
     
     return lambda x: np.sign((x[:, 1:] ** 2).sum(axis=1) - 0.6)
+
+### HOMEWORK 4 ################################################################
+
+def vapnik_chervonenkis_bound(
+        m_H: Callable[[np.ndarray[float]], np.ndarray[float]],
+        N: np.ndarray[float], delta: float) -> np.ndarray[float]:
+
+    """
+    Computes the generalization error bound(s) using the
+    Vapnik–Chervonenkis (VC) bound.
+
+    Parameters
+    ----------
+    m_H : `function`
+        Growth function m_H as a function of N.
+    
+    N : `numpy.ndarray`
+        Sample size(s). Must be provided as floating-point numbers to
+        prevent integer overflow.
+
+    delta : `float`
+        Confidence parameter delta.
+
+    Returns
+    -------
+    eps : `numpy.ndarray`
+        Generalization error bound(s) |E_out - E_in|.
+    """
+
+    return np.sqrt(8 * np.log(4 * m_H(2 * N) / delta) / N)
+
+def rademacher_bound(
+        m_H: Callable[[np.ndarray[float]], np.ndarray[float]],
+        N: np.ndarray[float], delta: float) -> np.ndarray[float]:
+    
+    """
+    Computes the generalization error bound(s) using the 
+    Rademacher penalty bound.
+
+    Parameters
+    ----------
+    m_H : `function`
+        Growth function m_H as a function of N.
+    
+    N : `numpy.ndarray`
+        Sample size(s). Must be provided as floating-point numbers to
+        prevent integer overflow.
+
+    delta : `float`
+        Confidence parameter delta.
+
+    Returns
+    -------
+    eps : `numpy.ndarray`
+        Generalization error bound(s) |E_out - E_in|.
+    """
+
+    return (np.sqrt(2 * np.log(2 * N * m_H(N)) / N) 
+            + np.sqrt(2 * np.log(1 / delta) / N) + 1 / N)
+
+def parrondo_van_den_broek_bound(
+        m_H: Callable[[np.ndarray[float]], np.ndarray[float]],
+        N: np.ndarray[float], delta: float, *, ub: float = 10.0
+    ) -> np.ndarray[float]:
+    
+    """
+    Computes the generalization error bound(s) using the 
+    Parrondo and Van den Broek bound.
+
+    Parameters
+    ----------
+    m_H : `function`
+        Growth function m_H as a function of N.
+    
+    N : `numpy.ndarray`
+        Sample size(s). Must be provided as floating-point numbers to
+        prevent integer overflow.
+
+    delta : `float`
+        Confidence parameter delta.
+
+    ub : `float`, keyword-only, default: 10
+        Upper bound for TOM Algorithm 748 bracket. A greater value may
+        be needed to evaluate the error bounds at smaller sample sizes.
+
+    Returns
+    -------
+    eps : `numpy.ndarray`
+        Generalization error bound(s) |E_out - E_in|.
+    """
+
+    return np.vectorize(
+        lambda N: optimize.root_scalar(
+            lambda eps: np.sqrt((2 * eps + np.log(6 * m_H(2 * N) / delta)) / N)
+                        - eps, 
+            bracket=(0.0, ub), method="toms748"
+        ).root
+    )(N)
+
+def devroye_bound(
+        m_H: Callable[[np.ndarray[float]], np.ndarray[float]],
+        N: np.ndarray[float], delta: float, *, ub: float = 10.0,
+        log: bool = False) -> np.ndarray[float]:
+
+    """
+    Computes the generalization error bound(s) using the 
+    Devroye bound.
+
+    Parameters
+    ----------
+    m_H : `function`
+        Growth function m_H as a function of N. If `log=True`, the 
+        logarithm of the growth function, i.e., log(m_H), should be
+        provided here instead.
+    
+    N : `numpy.ndarray`
+        Sample size(s). Must be provided as floating-point numbers to
+        prevent integer overflow.
+
+    delta : `float`
+        Confidence parameter delta.
+
+    ub : `float`, keyword-only, default: 10
+        Upper bound for TOM Algorithm 748 bracket. A greater value may
+        be needed to evaluate the error bounds at smaller sample sizes.
+
+    log : `bool`, keyword-only, default: False
+        Specifies whether the logarithm of the growth function is
+        provided instead in `m_H`.
+
+    Returns
+    -------
+    eps : `numpy.ndarray`
+        Generalization error bound(s) |E_out - E_in|.
+    """
+
+    func = lambda eps, N: np.sqrt(
+        (4 * eps * (1 + eps) + np.log(4 / delta) 
+         + (m_H(N ** 2) if log else np.log(m_H(N ** 2)))) / (2 * N)
+    ) - eps
+    return np.vectorize(
+        lambda N: optimize.root_scalar(func, args=N, bracket=(0.0, ub), 
+                                       method="toms748").root
+    )(N)
