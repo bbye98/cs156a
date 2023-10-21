@@ -110,6 +110,6 @@ if __name__ == "__main__":
         probs[i] = validate_binary(gs.T, x_test, h_test[:, None])
         Es_out[i] = np.count_nonzero(h_test != y_test) / N_test
     for i, (g, p) in enumerate(zip(gs, probs.mean(axis=0))):
-        print(f"  g{i + 1}=[", ", ".join(f"{v:.2g}" for v in g),
+        print(f"  [{chr(97 + i)}] g=[", ", ".join(f"{v:.2g}" for v in g),
               f"] (prob={1 - p:.5f})", sep="")
     print(f"  {N=:,}, noise={noise[0]:.3f}, E_out={Es_out.mean():.3f}")
