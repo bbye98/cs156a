@@ -40,37 +40,36 @@ mpl.rcParams.update(
 
 if __name__ == "__main__":
     # problems 2–3
-    d_vc, delta = 50, 0.05
+    d_vc = 50
+    delta = 0.05
     m_H = lambda N: N ** d_vc
-    Ns = np.arange(3, 10001, dtype=float)
+    Ns = np.arange(3, 10_001, dtype=float)
     bounds = {
         "Vapnik–Chervonenkis": vapnik_chervonenkis_bound(m_H, Ns, delta),
         "Rademacher": rademacher_bound(m_H, Ns, delta),
         "Parrondo–van den Broek": parrondo_van_den_broek_bound(m_H, Ns, delta),
-        "Devroye": devroye_bound(lambda N: d_vc * np.log(N), Ns, delta, 
-                                 log=True)
+        "Devroye": devroye_bound(lambda N: d_vc * np.log(N), Ns, delta, log=True)
     }
-
-    print(f"\n[HW4 P2–3]\nGeneralization bounds for {d_vc=} and {delta=}:")
-    for N in (10000, 5):
-        i = np.where(Ns == N)[0][0]
-        print(f"  {N=:,}:")
-        for l, b in bounds.items():
-            print(f"    {l}: {b[i]:.3f}")
 
     _, ax = plt.subplots()
     for l, b in bounds.items():
         ax.plot(Ns, b, label=l)
     ax.set_yscale("log")
     ylim = ax.get_ylim()
-    ax.plot((5, 5), ylim, "k:")
-    ax.plot((10000, 10000), ylim, "k:")
+
+    print(f"\n[HW4 P2–3]\nGeneralization bounds for {d_vc=} and {delta=}:")
+    for N in (10_000, 5):
+        i = np.where(Ns == N)[0][0]
+        print(f"  {N=:,}:")
+        for l, b in bounds.items():
+            print(f"    {l}: {b[i]:.3f}")
+        ax.plot((N, N), ylim, "k:")
+
     ax.legend(title="Generalization bound")
     ax.set_xlabel("$N$")
     ax.set_xscale("log")
     ax.set_ylabel("$\epsilon$")
     ax.set_ylim(ylim)
-    ax.text(-0.2, 0.959, " ", transform=ax.transAxes)
     plt.show()
 
     # problems 4–6
