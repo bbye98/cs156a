@@ -274,7 +274,7 @@ def linear_regression(
 
     """
     Implements the linear regression algorithm for a target function
-    operating on a two-dimensional data set D.
+    operating on a d-dimensional data set D.
 
     Parameters
     ----------
@@ -509,3 +509,167 @@ def devroye_bound(
         lambda N: optimize.root_scalar(func, args=N, bracket=(0.0, ub), 
                                        method="toms748").root
     )(N)
+
+### HOMEWORK 5 ################################################################
+
+def gradient_descent(
+        E: Callable[[np.ndarray[float]], float],
+        dE: Callable[[np.ndarray[float]], np.ndarray[float]],
+        x: np.ndarray[float], *, eta: float = 0.1, tol: float = 1e-14,
+        max_iters: int = 100_000) -> tuple[np.ndarray[float], int]:
+
+    """
+    Implements the gradient descent algorithm.
+
+    Parameters
+    ----------
+    E : `function`
+        Error function E(x).
+
+    dE : `function`
+        Gradient of the error function dE/dx.
+
+    x : `numpy.ndarray`
+        Initial guess x_0.
+
+    eta : `float`, keyword-only, default: 0.1
+        Learning rate eta.
+
+    tol : `float`, keyword-only, default: 1e-14
+        Tolerance for E(x).
+
+    max_iters : `int`, keyword-only, default: 100_000
+        Maximum number of iterations.
+
+    Returns
+    -------
+    x : `numpy.ndarray`
+        Optimal x.
+
+    iters : `int`
+        Number of iterations required for the gradient descent algorithm
+        to converge to x.
+    """
+
+    iters = 0
+    while E(x) > tol and iters < max_iters:
+        x -= eta * dE(x)
+        iters += 1
+    return x, iters
+
+def coordinate_descent(
+        E: Callable[[np.ndarray[float]], float],
+        dE_dx: tuple[Callable[[np.ndarray[float]], float]],
+        x: np.ndarray[float], *, eta: float = 0.1, tol: float = 1e-14,
+        max_iters: int = 100_000) -> tuple[np.ndarray[float], int]:
+    
+    """
+    Implements the coordinate descent algorithm.
+
+    Parameters
+    ----------
+    E : `function`
+        Error function E(x).
+
+    dE_dx : `tuple`
+        Partial derivatives of the error function dE/dx[0], dE/dx[1], 
+        ..., etc.
+
+    x : `numpy.ndarray`
+        Initial guess x_0.
+
+    eta : `float`, keyword-only, default: 0.1
+        Learning rate eta.
+
+    tol : `float`, keyword-only, default: 1e-14
+        Tolerance for E(x).
+
+    max_iters : `int`, keyword-only, default: 100_000
+        Maximum number of iterations.
+
+    Returns
+    -------
+    x : `numpy.ndarray`
+        Optimal x.
+
+    iters : `int`
+        Number of iterations required for the coordinate descent 
+        algorithm to converge to x.
+    """
+
+    iters = 0
+    while E(x) > tol and iters < max_iters:
+        for i in range(len(x)):
+            x[i] -= eta * dE_dx[i](x)
+        iters += 1
+    return x, iters
+
+def stochastic_gradient_descent(
+        N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]], 
+        eta: float = 0.01, tol: float = 0.01, *, N_test: int = 1_000,
+        rng: np.random.Generator = None, seed: int = None, hyp: bool = False
+    ) -> tuple[np.ndarray[float], float, float]:
+    
+    """
+    Implements the stochastic gradient descent algorithm for a target 
+    function operating on a d-dimensional data set D.
+
+    Parameters
+    ----------
+    N : `int`
+        Number of random data points.
+
+    f : `function`
+        Target function f as a function of the inputs x.
+
+    eta : `float`, default: 0.01
+        Learning rate eta.
+
+    tol : `float`, default: 0.01
+        Tolerance for the norm of the change in the hypothesis w.
+
+    N_test : `int`, keyword-only, default: 1_000
+        Number of random test data points.
+
+    rng : `numpy.random.Generator`, keyword-only, optional
+        A NumPy pseudo-random number generator.
+
+    seed : `int`, keyword-only, optional
+        Random seed used to initialize a pseudo-random number generator.
+        Only used if `rng=None`.
+
+    hyp : `bool`, keyword-only, default: False
+        Determines whether the hypothesis w is returned.
+
+    Returns
+    -------
+    w : `numpy.ndarray`
+        Hypothesis w.
+
+    epoch : `int`
+        Number of epochs required for the stochastic gradient descent
+        algorithm to converge to w.
+
+    E_out : `float`
+        Out-of-sample error E_out.
+    """
+
+    if rng is None:
+        rng = np.random.default_rng(seed)
+    xs, ys = generate_data(N, f, bias=True, rng=rng)
+    w = np.zeros(xs.shape[1], dtype=float)
+    epoch = 0
+    while True:
+        _w = w.copy()
+        ri = rng.permutation(np.arange(N))
+        for x, y in zip(xs[ri], ys[ri]):
+            _w += eta * y * x / (1 + np.exp(y * x @ _w))
+        dw = _w - w
+        w = _w
+        epoch += 1
+        if np.linalg.norm(dw) < tol:
+            break
+    
+    x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
+    E_out = np.log(1 + np.exp(-y_test[:, None] * x_test @ w)).mean()
+    return (w, epoch, E_out)[1 - hyp:]
