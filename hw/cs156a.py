@@ -262,15 +262,17 @@ def hoeffding_inequality(
     return 2 * M * np.exp(-2 * eps ** 2 * N)
 
 def linear_regression(
-        N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]],        
+        N: int = None, f: Callable[[np.ndarray[float]], np.ndarray[float]] = None,   
         vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
-                     np.ndarray[float]],
+                     np.ndarray[float]] = None,
         *, x: np.ndarray[float] = None, y: np.ndarray[float] = None,
         transform: Callable[[np.ndarray[float]], np.ndarray[float]] = None, 
         noise: tuple[float, 
                      Callable[[np.ndarray[float]], np.ndarray[float]]] = None,
-        N_test: int = 1_000, rng: np.random.Generator = None, seed: int = None,
-        hyp: bool = False) -> tuple[np.ndarray[float], float, float]:
+        regularization: str = None, N_test: int = 1_000, 
+        x_test: np.ndarray[float] = None, y_test: np.ndarray[float] = None,
+        rng: np.random.Generator = None, seed: int = None, hyp: bool = False,
+        **kwargs) -> tuple[np.ndarray[float], float, float]:
 
     """
     Implements the linear regression algorithm for a target function
@@ -278,13 +280,13 @@ def linear_regression(
 
     Parameters
     ----------
-    N : `int`
+    N : `int`, optional
         Number of random data points.
 
-    f : `function`
+    f : `function`, optional
         Target function f as a function of the inputs x.
 
-    vf : `function`
+    vf : `function`, optional
         Validation function as a function of w, x, and y.
 
     x : `numpy.ndarray`, keyword-only, optional
@@ -304,8 +306,26 @@ def linear_regression(
         Fraction of outputs y to introduce noise to and the
         transformation function.
 
+    regularization : `str`, optional
+        Regularization function for the hypothesis w.
+        
+        **Valid values**: 
+        
+        * :code:`"weight_decay"`: Weight decay regularization. Specify
+        lambda in keyword argument "wd_lambda".
+
     N_test : `int`, keyword-only, default: 1_000
         Number of random test data points.
+
+    x_test : `numpy.ndarray`, keyword-only, optional
+        Test inputs x_n. If a nonlinear transformation is expected, the
+        original inputs should be provided here and the transformation
+        function in `transform`.
+
+    y_test : `numpy.ndarray`, keyword-only, optional
+        Test outputs y_n. If noise is to be introduced, the original 
+        outputs should be provided here, and the noise fraction and 
+        function in `noise`.
 
     rng : `numpy.random.Generator`, keyword-only, optional
         A NumPy pseudo-random number generator.
@@ -335,15 +355,27 @@ def linear_regression(
         if x is None:
             x, y = generate_data(N, f, bias=True, rng=rng)
         else:
+            N = x.shape[0]
             y = f(x)
     if transform:
         x = transform(x)
     if noise:
         i = rng.choice(N, round(noise[0] * N), False)
         y[i] = noise[1](y[i])
-    w = np.linalg.pinv(x) @ y
+
+    if regularization is None:
+        w = np.linalg.pinv(x) @ y
+    elif regularization == "weight_decay":
+        w = np.linalg.inv(
+            x.T @ x + kwargs["wd_lambda"] * np.eye(x.shape[1], dtype=float)
+        ) @ x.T @ y
     
-    x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
+    if y_test is None:
+        if x_test is None:
+            x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
+        else:
+            N_test = x_test.shape[0]
+            y_test = f(x_test)
     if transform:
         x_test = transform(x_test)
     if noise:

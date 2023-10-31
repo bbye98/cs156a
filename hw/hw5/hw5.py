@@ -12,7 +12,7 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, pathlib.Path(__file__).resolve().parent)
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from cs156a import (
     gradient_descent, coordinate_descent,
     target_function_random_line, stochastic_gradient_descent

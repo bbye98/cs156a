@@ -12,7 +12,7 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, pathlib.Path(__file__).resolve().parent)
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from cs156a import (coin_flip, hoeffding_inequality, 
                     target_function_random_line, perceptron, linear_regression,
                     target_function_hw2, generate_data, validate_binary)
@@ -84,8 +84,12 @@ if __name__ == "__main__":
     )
     print(f"  {N=:,}, noise={noise[0]:.3f}, {E_in=:.3f}")
 
-    transform = lambda x: np.hstack((x, x[:, 1:2] * x[:, 2:], x[:, 1:2] ** 2,
-                                     x[:, 2:] ** 2))
+    transform = lambda x: np.hstack((
+        x, 
+        x[:, 1:2] * x[:, 2:], 
+        x[:, 1:2] ** 2,
+        x[:, 2:] ** 2
+    ))
     gs = np.array(((-1, -0.05, 0.08, 0.13, 1.5, 1.5), 
                    (-1, -0.05, 0.08, 0.13, 1.5, 15),
                    (-1, -0.05, 0.08, 0.13, 15, 1.5),
