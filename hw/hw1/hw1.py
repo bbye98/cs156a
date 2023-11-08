@@ -16,7 +16,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from cs156a import target_function_random_line, validate_binary, perceptron
     
 if __name__ == "__main__":
-    # problems 7–10
+    # Problems 7–10
     rng = np.random.default_rng()
     n_runs = 1_000
     print(f"\n[HW1 P7–10]\nPLA statistics over {n_runs:,} runs:")

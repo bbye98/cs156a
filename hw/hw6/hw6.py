@@ -17,23 +17,25 @@ CWD = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(CWD.parent))
 from cs156a import linear_regression, validate_binary
 
-if __name__ == "__main__":
+DATA_DIR = (CWD / "../data").resolve()
 
-    (CWD / "data").mkdir(exist_ok=True)
+if __name__ == "__main__":
+    # Problems 2–6
+    DATA_DIR.mkdir(exist_ok=True)
     data = {"train": "in.dta", "test": "out.dta"}
     for dataset, file in data.items():
-        if not (CWD / "data" / file).exists():
+        if not (DATA_DIR / file).exists():
             r = requests.get(f"http://work.caltech.edu/data/{file}")
-            with open(CWD / "data" / file, "wb") as f:
+            with open(DATA_DIR / file, "wb") as f:
                 f.write(r.content)
-        data[dataset] = np.loadtxt(CWD / "data" / file)
+        data[dataset] = np.loadtxt(DATA_DIR / file)
 
     transform = lambda x: np.hstack((
         np.ones((len(x), 1), dtype=float), 
         x, 
         x[:, :1] ** 2, 
         x[:, 1:] ** 2, 
-        x[:, :1] * x[:, 1:], 
+        np.prod(x, axis=1, keepdims=True),
         np.abs(x[:, :1] - x[:, 1:]), 
         np.abs(x[:, :1] + x[:, 1:])
     ))

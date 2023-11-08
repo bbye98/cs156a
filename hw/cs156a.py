@@ -1,7 +1,8 @@
-from typing import Callable
+from typing import Callable, Union
 
 import numpy as np
 from scipy import optimize
+from sklearn import svm
 
 ### HOMEWORK 1 ################################################################
 
@@ -35,8 +36,8 @@ def target_function_random_line(
         rng = np.random.default_rng(seed)
     line = rng.uniform(-1, 1, (2, 2))
     return lambda x: np.sign(
-        x[:, 2] - line[0, 1] 
-        - np.divide(*(line[1] - line[0])[::-1]) * (x[:, 1] - line[0, 0])
+        x[:, -1] - line[0, 1] 
+        - np.divide(*(line[1] - line[0])[::-1]) * (x[:, -2] - line[0, 0])
     )
 
 def generate_data(
@@ -121,12 +122,14 @@ def validate_binary(
     return np.count_nonzero(np.sign(x @ w) != y, axis=0) / x.shape[0]
 
 def perceptron(
-        N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]], 
+        N: int = None,
+        f: Callable[[np.ndarray[float]], np.ndarray[float]] = None, 
         vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
-                     np.ndarray[float]],
+                     np.ndarray[float]] = None,
         *, w: np.ndarray[float] = None, x: np.ndarray[float] = None, 
-        y: np.ndarray[float] = None, N_test: int = 1_000,
-        rng: np.random.Generator = None, seed: int = None
+        y: np.ndarray[float] = None, N_test: int = 1_000, 
+        x_test: np.ndarray[float] = None, y_test: np.ndarray[float] = None,
+        rng: np.random.Generator = None, seed: int = None, hyp: bool = False
     ) -> tuple[int, float]:
     
     """
@@ -135,13 +138,13 @@ def perceptron(
 
     Parameters
     ----------
-    N : `int`
+    N : `int`, optional
         Number of random data points.
 
-    f : `function`
+    f : `function`, optional
         Target function f as a function of the inputs x.
 
-    vf : `function`
+    vf : `function`, optional
         Validation function as a function of w, x, and y.
 
     w : `numpy.ndarray`, keyword-only, optional
@@ -157,6 +160,12 @@ def perceptron(
     N_test : `int`, keyword-only, default: 1_000
         Number of random test data points.
 
+    x_test : `numpy.ndarray`, keyword-only, optional
+        Test inputs x_n.
+
+    y_test : `numpy.ndarray`, keyword-only, optional
+        Test outputs y_n.
+
     rng : `numpy.random.Generator`, keyword-only, optional
         A NumPy pseudo-random number generator.
 
@@ -164,6 +173,9 @@ def perceptron(
         Random seed used to initialize a pseudo-random number generator.
         Only used if `rng=None`.
 
+    hyp : `bool`, keyword-only, default: False
+        Determines whether the hypothesis w is returned.
+        
     Returns
     -------
     iters : `int`
@@ -171,7 +183,8 @@ def perceptron(
         formula g.
 
     prob : `float`
-        Estimated misclassification rate P[f(x) != g(x)].
+        Estimated misclassification rate P[f(x) != g(x)]. Only returned
+        if `vf` is provided.
     """
 
     if rng is None:
@@ -183,6 +196,7 @@ def perceptron(
             y = f(x)
     if w is None:
         w = np.zeros(x.shape[1], dtype=float)
+
     iters = 0
     while True:
         wrong = np.argwhere(np.sign(x @ w) != y)[:, 0]
@@ -191,7 +205,16 @@ def perceptron(
         i = np.random.choice(wrong)
         w += y[i] * x[i]
         iters += 1
-    return iters, vf(w, *generate_data(N_test, f, bias=True, rng=rng))
+
+    if vf is None:
+         return (w, iters)[1 - hyp:]
+
+    if x_test is None or y_test is None:
+        if x_test is None:
+            x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
+        else:
+            y_test = f(x_test)
+    return (w, iters, vf(w, x_test, y_test))[1 - hyp:]
 
 ### HOMEWORK 2 ################################################################
 
@@ -262,7 +285,8 @@ def hoeffding_inequality(
     return 2 * M * np.exp(-2 * eps ** 2 * N)
 
 def linear_regression(
-        N: int = None, f: Callable[[np.ndarray[float]], np.ndarray[float]] = None,   
+        N: int = None, 
+        f: Callable[[np.ndarray[float]], np.ndarray[float]] = None,
         vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
                      np.ndarray[float]] = None,
         *, x: np.ndarray[float] = None, y: np.ndarray[float] = None,
@@ -271,8 +295,10 @@ def linear_regression(
                      Callable[[np.ndarray[float]], np.ndarray[float]]] = None,
         regularization: str = None, N_test: int = 1_000, 
         x_test: np.ndarray[float] = None, y_test: np.ndarray[float] = None,
-        rng: np.random.Generator = None, seed: int = None, hyp: bool = False,
-        **kwargs) -> tuple[np.ndarray[float], float, float]:
+        x_validate: np.ndarray[float] = None, 
+        y_validate: np.ndarray[float] = None, rng: np.random.Generator = None,
+        seed: int = None, hyp: bool = False, **kwargs
+    ) -> tuple[np.ndarray[float], Union[float, tuple[float]], float]:
 
     """
     Implements the linear regression algorithm for a target function
@@ -327,6 +353,18 @@ def linear_regression(
         outputs should be provided here, and the noise fraction and 
         function in `noise`.
 
+    x_validate : `numpy.ndarray`, keyword-only, optional
+        Validation inputs x_n. If a nonlinear transformation is 
+        expected, the original inputs should be provided here and the
+        transformation function in `transform`. If not specified, no
+        validation is performed.
+
+    y_validate : `numpy.ndarray`, keyword-only, optional
+        Validation outputs y_n. If noise is to be introduced, the 
+        original outputs should be provided here, and the noise fraction
+        and function in `noise`. If not specified, no validation is
+        performed.
+
     rng : `numpy.random.Generator`, keyword-only, optional
         A NumPy pseudo-random number generator.
 
@@ -342,21 +380,25 @@ def linear_regression(
     w : `numpy.ndarray`
         Hypothesis w. Only available if `hyp=True`.
 
-    E_in : `float`
-        In-sample error E_in.
+    E_in : `float` or `tuple`
+        In-sample error E_in. If `x_validate` and `y_validate` are
+        provided, the errors for the test and validation sets are
+        returned here. Only returned if `vf` is provided.
 
     E_out : `float`
-        Out-of-sample error E_out.
+        Out-of-sample error E_out. Only returned if `vf` is provided.
     """
 
     if rng is None:
         rng = np.random.default_rng(seed)
-    if y is None:
+    if x is None or y is None:
         if x is None:
             x, y = generate_data(N, f, bias=True, rng=rng)
         else:
             N = x.shape[0]
             y = f(x)
+    else:
+        N = x.shape[0]
     if transform:
         x = transform(x)
     if noise:
@@ -370,18 +412,34 @@ def linear_regression(
             x.T @ x + kwargs["wd_lambda"] * np.eye(x.shape[1], dtype=float)
         ) @ x.T @ y
     
-    if y_test is None:
+    if vf is None:
+        return w
+
+    if x_test is None or y_test is None:
         if x_test is None:
             x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
         else:
             N_test = x_test.shape[0]
             y_test = f(x_test)
+    else:
+        N_test = x_test.shape[0]
     if transform:
         x_test = transform(x_test)
     if noise:
         i = rng.choice(N_test, round(noise[0] * N_test), False)
         y_test[i] = noise[1](y_test[i])
-    return (w, vf(w, x, y), vf(w, x_test, y_test))[1 - hyp:]
+
+    if x_validate is None or y_validate is None:
+        return (w, vf(w, x, y), vf(w, x_test, y_test))[1 - hyp:]
+    
+    N_validate = len(y_validate)
+    if transform:
+        x_validate = transform(x_validate)
+    if noise:
+        i = rng.choice(N_validate, round(noise[0] * N_validate), False)
+        y_validate[i] = noise[1](y_validate[i])
+    return (w, (vf(w, x, y), vf(w, x_validate, y_validate)), 
+            vf(w, x_test, y_test))[1 - hyp:]
 
 def target_function_hw2() -> Callable[[np.ndarray[float]], np.ndarray[float]]:
 
@@ -705,3 +763,43 @@ def stochastic_gradient_descent(
     x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
     E_out = np.log(1 + np.exp(-y_test[:, None] * x_test @ w)).mean()
     return (w, epoch, E_out)[1 - hyp:]
+
+### HOMEWORK 7 ################################################################
+
+def support_vector_machine(
+        N: int = None, 
+        f: Callable[[np.ndarray[float]], np.ndarray[float]] = None,
+        vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
+                     np.ndarray[float]] = None,
+        *, x: np.ndarray[float] = None, y: np.ndarray[float] = None,
+        N_test: int = 1_000, x_test: np.ndarray[float] = None, 
+        y_test: np.ndarray[float] = None, rng: np.random.Generator = None,
+        seed: int = None, hyp: bool = False, **kwargs
+    ) -> tuple[int, float]: 
+
+    """
+    
+    """
+
+    if rng is None:
+        rng = np.random.default_rng(seed)
+    if y is None:
+        if x is None:
+            x, y = generate_data(N, f, bias=True, rng=rng)
+        else:
+            y = f(x)
+
+    clf = svm.SVC(**kwargs)
+    clf.fit(x[:, 1:], y)
+    w = np.concatenate((clf.intercept_, clf.coef_[0]))
+    N_sv = clf.n_support_.sum()
+
+    if vf is None:
+         return (w, N_sv)[1 - hyp:]
+    
+    if x_test is None or y_test is None:
+        if x_test is None:
+            x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
+        else:
+            y_test = f(x_test)
+    return (w, N_sv, vf(w, x_test, y_test))[1 - hyp:]

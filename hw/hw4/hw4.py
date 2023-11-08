@@ -39,7 +39,7 @@ mpl.rcParams.update(
 )
 
 if __name__ == "__main__":
-    # problems 2–3
+    # Problems 2–3
     d_vc = 50
     delta = 0.05
     m_H = lambda N: N ** d_vc
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     ax.set_ylim(ylim)
     plt.show()
 
-    # problems 4–6
+    # Problems 4–6
     n_runs = 10_000_000
     hs = {
         # h(x): ((a(x_in, y_in), b(x_in, y_in)),

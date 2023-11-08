@@ -19,7 +19,7 @@ from cs156a import (
 )
 
 if __name__ == "__main__":
-    # problems 5–7
+    # Problems 5–7
     E = lambda x: (x[0] * np.exp(x[1]) - 2 * x[1] * np.exp(-x[0])) ** 2
     dE_du = lambda x: (2 * (x[0] * np.exp(x[1]) - 2 * x[1] * np.exp(-x[0])) 
                     * (np.exp(x[1]) + 2 * x[1] * np.exp(-x[0])))
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     print(f"  Coordinate descent: {iters=}, x=({x[0]:.3f}, {x[1]:.3f}), "
           f"{E(x)=:.3e}")
     
-    # problems 8–9
+    # Problems 8–9
     rng = np.random.default_rng()
     N = 100
     n_runs = 100

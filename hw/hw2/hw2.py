@@ -18,7 +18,7 @@ from cs156a import (coin_flip, hoeffding_inequality,
                     target_function_hw2, generate_data, validate_binary)
 
 if __name__ == "__main__":
-    # problems 1–2
+    # Problems 1–2
     rng = np.random.default_rng()
     n_trials = 100_000
     n_flips = 10
@@ -46,7 +46,7 @@ if __name__ == "__main__":
             )
         )
 
-    # problems 5–7
+    # Problems 5–7
     N = 100
     n_runs = 1_000
     print(f"\n[HW2 P5–7]\nLinear regression statistics over {n_runs:,} runs:")
@@ -72,7 +72,7 @@ if __name__ == "__main__":
         )[0]
     print(f"  {N=:,}, iters={iters.mean():,.0f}")
 
-    # problems 8–10
+    # Problems 8–10
     f = target_function_hw2()
     N = N_test = n_runs = 1_000
     noise = (0.1, lambda y: -y)
