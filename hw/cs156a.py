@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable
 
 import numpy as np
 from scipy import optimize
@@ -298,7 +298,7 @@ def linear_regression(
         x_validate: np.ndarray[float] = None, 
         y_validate: np.ndarray[float] = None, rng: np.random.Generator = None,
         seed: int = None, hyp: bool = False, **kwargs
-    ) -> tuple[np.ndarray[float], Union[float, tuple[float]], float]:
+    ) -> tuple[np.ndarray[float], float | tuple[float], float]:
 
     """
     Implements the linear regression algorithm for a target function
@@ -773,12 +773,64 @@ def support_vector_machine(
                      np.ndarray[float]] = None,
         *, x: np.ndarray[float] = None, y: np.ndarray[float] = None,
         N_test: int = 1_000, x_test: np.ndarray[float] = None, 
-        y_test: np.ndarray[float] = None, rng: np.random.Generator = None,
-        seed: int = None, hyp: bool = False, **kwargs
-    ) -> tuple[int, float]: 
+        y_test: np.ndarray[float] = None, clf: svm.SVC = None,
+        rng: np.random.Generator = None, seed: int = None, hyp: bool = False,
+        **kwargs) -> tuple[int, float]: 
 
     """
-    
+    Provides a wrapper around `sklearn.svm.SVC` to implement the
+    support vector machine (SVM) algorithm for a target function
+    operating on a d-dimensional data set D.
+
+    Parameters
+    ----------
+    N : `int`, optional
+        Number of random data points.
+
+    f : `function`, optional
+        Target function f as a function of the inputs x.
+
+    vf : `function`, optional
+        Validation function as a function of w, x, and y.
+
+    x : `numpy.ndarray`, keyword-only, optional
+        Inputs x_n.
+
+    y : `numpy.ndarray`, keyword-only, optional
+        Outputs y_n.
+
+    N_test : `int`, keyword-only, default: 1_000
+        Number of random test data points.
+
+    x_test : `numpy.ndarray`, keyword-only, optional
+        Test inputs x_n.
+
+    y_test : `numpy.ndarray`, keyword-only, optional
+        Test outputs y_n.
+
+    clf : `sklearn.svm.SVC`, keyword-only, optional
+        Support vector machine classifier.
+
+    rng : `numpy.random.Generator`, keyword-only, optional
+        A NumPy pseudo-random number generator.
+
+    seed : `int`, keyword-only, optional
+        Random seed used to initialize a pseudo-random number generator.
+        Only used if `rng=None`.
+
+    hyp : `bool`, keyword-only, default: False
+        Determines whether the hypothesis w is returned.
+
+    Returns
+    -------
+    w : `numpy.ndarray`
+        Hypothesis w. Only available if `hyp=True`.
+
+    N_sv : `int`
+        Number of support vectors.
+
+    E_out : `float`
+        Out-of-sample error E_out. Only returned if `vf` is provided.
     """
 
     if rng is None:
@@ -789,7 +841,8 @@ def support_vector_machine(
         else:
             y = f(x)
 
-    clf = svm.SVC(**kwargs)
+    if clf is None:
+        clf = svm.SVC(**kwargs)
     clf.fit(x[:, 1:], y)
     w = np.concatenate((clf.intercept_, clf.coef_[0]))
     N_sv = clf.n_support_.sum()
