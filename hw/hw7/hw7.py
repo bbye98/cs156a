@@ -92,7 +92,7 @@ if __name__ == "__main__":
                     break
             x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
             _, E_out_pla = perceptron(N, f, vf=validate_binary, x=x, y=y, 
-                                    x_test=x_test, y_test=y_test, rng=rng)
+                                      x_test=x_test, y_test=y_test, rng=rng)
             N_sv, E_out_svm = support_vector_machine(
                 N, f, vf=validate_binary, x=x, y=y, x_test=x_test, y_test=y_test,
                 clf=clf, rng=rng

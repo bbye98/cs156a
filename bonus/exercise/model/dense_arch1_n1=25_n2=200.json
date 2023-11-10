@@ -1,7 +1,7 @@
 {
     "class_name": "Sequential",
     "config": {
-        "name": "sequential_49",
+        "name": "sequential_4",
         "layers": [
             {
                 "class_name": "InputLayer",
@@ -13,13 +13,13 @@
                     "dtype": "float32",
                     "sparse": false,
                     "ragged": false,
-                    "name": "dense_147_input"
+                    "name": "dense_12_input"
                 }
             },
             {
                 "class_name": "Dense",
                 "config": {
-                    "name": "dense_147",
+                    "name": "dense_12",
                     "trainable": true,
                     "dtype": "float32",
                     "batch_input_shape": [
@@ -60,7 +60,7 @@
             {
                 "class_name": "Activation",
                 "config": {
-                    "name": "activation_147",
+                    "name": "activation_12",
                     "trainable": true,
                     "dtype": "float32",
                     "activation": "relu"
@@ -69,7 +69,7 @@
             {
                 "class_name": "Dense",
                 "config": {
-                    "name": "dense_148",
+                    "name": "dense_13",
                     "trainable": true,
                     "dtype": "float32",
                     "units": 200,
@@ -106,7 +106,7 @@
             {
                 "class_name": "Activation",
                 "config": {
-                    "name": "activation_148",
+                    "name": "activation_13",
                     "trainable": true,
                     "dtype": "float32",
                     "activation": "relu"
@@ -115,7 +115,7 @@
             {
                 "class_name": "Dense",
                 "config": {
-                    "name": "dense_149",
+                    "name": "dense_14",
                     "trainable": true,
                     "dtype": "float32",
                     "units": 10,
@@ -152,7 +152,7 @@
             {
                 "class_name": "Activation",
                 "config": {
-                    "name": "activation_149",
+                    "name": "activation_14",
                     "trainable": true,
                     "dtype": "float32",
                     "activation": "softmax"
