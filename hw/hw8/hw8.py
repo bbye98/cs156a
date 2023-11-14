@@ -101,7 +101,7 @@ if __name__ == "__main__":
     print("\n[HW8 P9–10]\nSVM with soft margins and RBF kernel "
           "(1 vs. 5 classifier):")
     clfs = [svm.SVC(C=C, gamma=1) for C in [0.01, 1, 100, 1e4, 1e6]]
-    for clf in clfs:
+    for clf in [svm.SVC(C=C, gamma=1) for C in [0.01, 1, 100, 1e4, 1e6]]:
         _, E_out = support_vector_machine(
             x=_x[:, 1:], y=y, 
             x_test=_x_test[:, 1:], y_test=y_test,

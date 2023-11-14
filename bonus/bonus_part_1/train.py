@@ -7,18 +7,17 @@
 #              network and a convolutional network.
 ################################################################################
 
-import os
 import argparse
 import json
-import matplotlib.pyplot as plt
-import tensorflow as tf
-import keras
+import os
+
+import tensorrt
 from keras.datasets import mnist
 from keras.models import Sequential
 from keras.regularizers import l2
-from keras.layers.core import Dense, Activation, Dropout
-from keras.layers import Conv2D, MaxPooling2D, Flatten
-from keras.utils import np_utils
+from keras.layers import Activation, Conv2D, Dense, Flatten, MaxPooling2D
+from keras.utils import to_categorical
+import matplotlib.pyplot as plt
 
 # Parse command line arguments
 def parse_args():
@@ -64,8 +63,8 @@ def get_data(is_net_conv):
 
     # Convert labels to one-hot vectors (probability distributions w/
     # probability 1 assigned to the correct label)
-    y_train = np_utils.to_categorical(y_train)
-    y_test = np_utils.to_categorical(y_test)
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
 
     return (X_train, y_train), (X_test, y_test)
 
