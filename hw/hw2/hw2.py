@@ -18,8 +18,9 @@ from cs156a import (coin_flip, hoeffding_inequality,
                     target_function_hw2, generate_data, validate_binary)
 
 if __name__ == "__main__":
-    # Problems 1–2
     rng = np.random.default_rng()
+
+    # Problems 1–2
     n_trials = 100_000
     n_flips = 10
     labels = ("first", "random", "minimum")

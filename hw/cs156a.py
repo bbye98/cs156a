@@ -794,7 +794,8 @@ def support_vector_machine(
         Validation function as a function of w, x, and y.
 
     x : `numpy.ndarray`, keyword-only, optional
-        Inputs x_n.
+        Inputs x_n. If :code:`kernel="linear"`, the first
+        column should be an array of ones for the constant bias term.
 
     y : `numpy.ndarray`, keyword-only, optional
         Outputs y_n.
@@ -824,35 +825,43 @@ def support_vector_machine(
     Returns
     -------
     w : `numpy.ndarray`
-        Hypothesis w. Only available if `hyp=True`.
+        Hypothesis w. Only available if `hyp=True` and 
+        :code:`kernel="linear"`.
 
     N_sv : `int`
         Number of support vectors.
 
     E_out : `float`
-        Out-of-sample error E_out. Only returned if `vf` is provided.
+        Out-of-sample error E_out.
     """
+
+    if clf is None:
+        clf = svm.SVC(**kwargs)
+    is_linear_kernel = clf.kernel == "linear"
 
     if rng is None:
         rng = np.random.default_rng(seed)
     if y is None:
         if x is None:
-            x, y = generate_data(N, f, bias=True, rng=rng)
+            x, y = generate_data(N, f, bias=is_linear_kernel, rng=rng)
         else:
             y = f(x)
 
-    if clf is None:
-        clf = svm.SVC(**kwargs)
-    clf.fit(x[:, 1:], y)
-    w = np.concatenate((clf.intercept_, clf.coef_[0]))
+    clf.fit(x[:, is_linear_kernel:], y)
     N_sv = clf.n_support_.sum()
 
-    if vf is None:
-         return (w, N_sv)[1 - hyp:]
-    
     if x_test is None or y_test is None:
         if x_test is None:
-            x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
+            x_test, y_test = generate_data(N_test, f, bias=is_linear_kernel,
+                                           rng=rng)
         else:
             y_test = f(x_test)
-    return (w, N_sv, vf(w, x_test, y_test))[1 - hyp:]
+
+    if is_linear_kernel:
+        w = np.concatenate((clf.intercept_, clf.coef_[0]))
+        return (
+            w, N_sv, 
+            vf(w, x_test, y_test) if vf 
+            else (1 - clf.score(x_test[:, is_linear_kernel:], y_test))
+        )[1 - hyp:]
+    return (N_sv, 1 - clf.score(x_test, y_test))
