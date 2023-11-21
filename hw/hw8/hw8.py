@@ -16,11 +16,11 @@ from sklearn import svm
 from sklearn.model_selection import cross_val_score
 from sklearn.utils import shuffle
 
-CWD = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(CWD.parent))
+CWD = pathlib.Path(__file__).resolve()
+sys.path.insert(0, str(CWD.parents[2]))
 from cs156a import support_vector_machine
 
-DATA_DIR = (CWD / "../data").resolve()
+DATA_DIR = (CWD.parents[2] / "data").resolve()
 
 if __name__ == "__main__":
     rng = np.random.default_rng()
@@ -49,7 +49,7 @@ if __name__ == "__main__":
             x=x, y=y,
             x_test=data["test"][:, 1:], 
             y_test=2 * (data["test"][:, 0] == digit) - 1,
-            clf=clf
+            clf=clf, rng=rng
         )
         E_in = 1 - clf.score(x, y)
         print(f"  {digit} vs. all: {N_sv=:,}, {E_in=:.4f}, {E_out=:.4f}")
@@ -70,7 +70,7 @@ if __name__ == "__main__":
             N_sv, E_out = support_vector_machine(
                 x=_x[:, 1:], y=y,
                 x_test=_x_test[:, 1:], y_test=y_test,
-                clf=clf
+                clf=clf, rng=rng
             )
             E_in = 1 - clf.score(_x[:, 1:], y)
             print(f"  {C=}, {Q=}: {N_sv=:,}, {E_in=:.4f}, {E_out=:.4f}")

@@ -14,7 +14,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 from cs156a import (
     vapnik_chervonenkis_bound, rademacher_bound, 
     parrondo_van_den_broek_bound, devroye_bound, generate_data

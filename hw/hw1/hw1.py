@@ -12,7 +12,7 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 from cs156a import target_function_random_line, validate_binary, perceptron
     
 if __name__ == "__main__":

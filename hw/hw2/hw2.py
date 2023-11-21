@@ -12,7 +12,7 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 from cs156a import (coin_flip, hoeffding_inequality, 
                     target_function_random_line, perceptron, linear_regression,
                     target_function_hw2, generate_data, validate_binary)

@@ -14,14 +14,14 @@ import numpy as np
 import requests
 from sklearn import svm
 
-CWD = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(CWD.parent))
+CWD = pathlib.Path(__file__).resolve()
+sys.path.insert(0, str(CWD.parents[2]))
 from cs156a import (
     linear_regression, validate_binary, target_function_random_line, 
     generate_data, perceptron, support_vector_machine
 )
 
-DATA_DIR = (CWD / "../data").resolve()
+DATA_DIR = (CWD.parents[2] / "data").resolve()
 
 if __name__ == "__main__":
     rng = np.random.default_rng()
@@ -62,6 +62,7 @@ if __name__ == "__main__":
                 y_test=raw_data["out"][:, -1], 
                 x_validate=data[1 - i][:, :-1],
                 y_validate=data[1 - i][:, -1],
+                rng=rng,
                 hyp=True
             )
             print(f"  {k=}, E_in_test={E_in[0]:.3f}, "

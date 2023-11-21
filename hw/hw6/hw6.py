@@ -13,13 +13,15 @@ import sys
 import numpy as np
 import requests
 
-CWD = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(CWD.parent))
+CWD = pathlib.Path(__file__).resolve()
+sys.path.insert(0, str(CWD.parents[2]))
 from cs156a import linear_regression, validate_binary
 
-DATA_DIR = (CWD / "../data").resolve()
+DATA_DIR = (CWD.parents[2] / "data").resolve()
 
 if __name__ == "__main__":
+    rng = np.random.default_rng()
+
     # Problems 2–6
     DATA_DIR.mkdir(exist_ok=True)
     data = {"train": "in.dta", "test": "out.dta"}
@@ -45,7 +47,7 @@ if __name__ == "__main__":
     E_in, E_out = linear_regression(
         vf=validate_binary, x=data["train"][:, :-1], y=data["train"][:, -1],
         transform=transform, x_test=data["test"][:, :-1], 
-        y_test=data["test"][:, -1]
+        y_test=data["test"][:, -1], rng=rng
     )
     print(f"  {E_in=:.3f}, {E_out=:.3f}")
     print("Linear regression (with weight decay regularization using "
@@ -55,6 +57,6 @@ if __name__ == "__main__":
             vf=validate_binary, x=data["train"][:, :-1], y=data["train"][:, -1],
             transform=transform, regularization="weight_decay", 
             wd_lambda=10.0 ** k, x_test=data["test"][:, :-1], 
-            y_test=data["test"][:, -1]
+            y_test=data["test"][:, -1], rng=rng
         )
         print(f"  {k=}: {E_in=:.3f}, {E_out=:.3f}")

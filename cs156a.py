@@ -99,8 +99,8 @@ def validate_binary(
     ) -> float:
     
     """
-    Calculates the in-sample or out-of-sample error for an algorithm
-    trained on binary data.
+    Calculates the in-sample or out-of-sample error for the weights of a
+    regression model trained on binary data.
 
     Parameters
     ----------
@@ -189,11 +189,10 @@ def perceptron(
 
     if rng is None:
         rng = np.random.default_rng(seed)
-    if y is None:
-        if x is None:
-            x, y = generate_data(N, f, bias=True, rng=rng)
-        else:
-            y = f(x)
+    if x is None:
+        x, y = generate_data(N, f, bias=True, rng=rng)
+    elif y is None:
+        y = f(x)
     if w is None:
         w = np.zeros(x.shape[1], dtype=float)
 
@@ -207,13 +206,12 @@ def perceptron(
         iters += 1
 
     if vf is None:
-         return (w, iters)[1 - hyp:]
+        return (w, iters)[1 - hyp:]
 
-    if x_test is None or y_test is None:
-        if x_test is None:
-            x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
-        else:
-            y_test = f(x_test)
+    if x_test is None:
+        x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
+    elif y_test is None:
+        y_test = f(x_test)
     return (w, iters, vf(w, x_test, y_test))[1 - hyp:]
 
 ### HOMEWORK 2 ################################################################
@@ -338,7 +336,7 @@ def linear_regression(
         **Valid values**: 
         
         * :code:`"weight_decay"`: Weight decay regularization. Specify
-        lambda in keyword argument "wd_lambda".
+          lambda in keyword argument "wd_lambda".
 
     N_test : `int`, keyword-only, default: 1_000
         Number of random test data points.
@@ -391,12 +389,11 @@ def linear_regression(
 
     if rng is None:
         rng = np.random.default_rng(seed)
-    if x is None or y is None:
-        if x is None:
-            x, y = generate_data(N, f, bias=True, rng=rng)
-        else:
-            N = x.shape[0]
-            y = f(x)
+    if x is None:
+        x, y = generate_data(N, f, bias=True, rng=rng)
+    elif y is None:
+        N = x.shape[0]
+        y = f(x)
     else:
         N = x.shape[0]
     if transform:
@@ -414,11 +411,13 @@ def linear_regression(
     
     if vf is None:
         return w
-
+    
     if x_test is None or y_test is None:
+        if f is None:
+            return (w, vf(w, x, y))[1 - hyp:]
         if x_test is None:
             x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
-        else:
+        elif y_test is None:
             N_test = x_test.shape[0]
             y_test = f(x_test)
     else:
