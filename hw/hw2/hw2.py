@@ -74,13 +74,13 @@ if __name__ == "__main__":
     print(f"  {N=:,}, iters={iters.mean():,.0f}")
 
     # Problems 8–10
-    f = target_function_hw2()
     N = N_test = n_runs = 1_000
     noise = (0.1, lambda y: -y)
     print("\n[HW2 P8–10]\nLinear regression (with linear feature vector)",
           f"statistics over {n_runs:,} runs:")
     E_in = np.mean(
-        [linear_regression(N, f, validate_binary, noise=noise, rng=rng)[0]
+        [linear_regression(N, target_function_hw2, validate_binary, 
+                           noise=noise, rng=rng)[0]
          for _ in range(n_runs)]
     )
     print(f"  {N=:,}, noise={noise[0]:.3f}, {E_in=:.3f}")

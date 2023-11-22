@@ -1,8 +1,29 @@
 import pathlib
 import sys
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import requests
+from sklearn import svm
+
+mpl.rcParams.update(
+    {
+        "axes.labelsize": 14,
+        "figure.autolayout": True,
+        "figure.figsize": (4.875, 3.65625),
+        "font.size": 12,
+        "legend.columnspacing": 1,
+        "legend.edgecolor": "1",
+        "legend.framealpha": 0,
+        "legend.fontsize": 12,
+        "legend.handlelength": 1.25,
+        "legend.labelspacing": 0.25,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "text.usetex": True
+    }
+)
 
 CWD = pathlib.Path(__file__).resolve()
 sys.path.insert(0, str(CWD.parents[1]))
@@ -25,7 +46,7 @@ if __name__ == "__main__":
         data[dataset] = np.loadtxt(DATA_DIR / file)
 
     # Problems 7–10
-    print("\n[FE P7–9]\nLinear regression with regularization statistics:")
+    print("\n[FE P7–9]\nLinear regression with regularization:")
     transform = lambda x: np.hstack((x, x[:, 1:2] * x[:, 2:], x[:, 1:2] ** 2,
                                      x[:, 2:] ** 2))
     for digit in range(10):
@@ -45,7 +66,7 @@ if __name__ == "__main__":
             print(f"    {l}: {E_in=:.6f}, {E_out=:.6f}")
 
     print("\n[FE P10]\nLinear regression with transform and "
-          "regularization for 1 vs. 5 classifier statistics:")
+          "regularization for 1 vs. 5 classifier:")
     subset = data["train"][np.isin(data["train"][:, 0], (1, 5))]
     x = np.hstack((np.ones((len(subset), 1), dtype=float), subset[:, 1:]))
     y = (subset[:, 0] == 1).astype(int) - (subset[:, 0] == 5)
@@ -60,3 +81,27 @@ if __name__ == "__main__":
             x_test=x_test, y_test=y_test, rng=rng
         )
         print(f"    lambda={wd_lambda}: {E_in=:.6f}, {E_out=:.6f}")
+
+    # Problems 11–12
+    x = np.array(((1, 0), (0, 1), (0, -1), (-1, 0), (0, 2), (0, -2), 
+              (-2, 0)), dtype=float)
+    y = np.array((-1, -1, -1, 1, 1, 1, 1), dtype=int)
+    z = np.hstack((x[:, 1:] ** 2 - 2 * x[:, :1] - 1, 
+                   x[:, :1] ** 2 - 2 * x[:, 1:] + 1))
+
+    _, ax = plt.subplots()
+    ax.scatter(*z[y == 1].T, marker="s", label="$+1$")
+    ax.scatter(*z[y == -1].T, marker="o", label="$-1$")
+    ax.set_aspect("equal", "box")
+    ax.set_xlabel("$z_1$")
+    ax.set_xlim(-6, 6)
+    ax.set_ylabel("$z_2$")
+    ax.set_ylim(-6, 6)
+    ax.legend(title="Classification", loc="lower left")
+    plt.show()
+
+    clf = svm.SVC(C=np.finfo(float).max, kernel="poly", degree=2, gamma=1, 
+                  coef0=1)
+    clf.fit(x, y)
+    print("[FE P12]\nSecond-order polynomial support vector machine:\n"
+        f"  N_sv={clf.n_support_.sum()}")

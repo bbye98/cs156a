@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Union
 
 import numpy as np
 from scipy import optimize
@@ -7,8 +7,10 @@ from sklearn import svm
 ### HOMEWORK 1 ################################################################
 
 def target_function_random_line(
-        *, rng: np.random.Generator = None, seed: int = None
-    ) -> Callable[[np.ndarray[float]], np.ndarray[float]]:
+        x: np.ndarray[float] = None, *, rng: np.random.Generator = None, 
+        seed: int = None
+    ) -> Union[Callable[[np.ndarray[float]], np.ndarray[float]],
+               np.ndarray[float]]:
 
     """
     Implements the target function f(x_1, x_2) = m * x_1 + b, where m
@@ -18,6 +20,10 @@ def target_function_random_line(
 
     Parameters
     ----------
+    x : `numpy.ndarray`, optional
+        Inputs x_n, which contain the x- and y-coordinates in the last two
+        columns.
+
     rng : `numpy.random.Generator`, keyword-only, optional
         A NumPy pseudo-random number generator.
 
@@ -27,18 +33,20 @@ def target_function_random_line(
 
     Returns
     -------
-    f : `function`
-        Target function f as a function of the inputs x, which contain
-        the constant bias and the x- and y-coordinates.
+    f : `function` or `numpy.ndarray`
+        If `x=None`, a target function f as a function of the inputs x, 
+        which contain the x- and y-coordinates in the last two columns.
+        If x_n is provided in x, the outputs y_n.
     """
     
     if rng is None:
         rng = np.random.default_rng(seed)
     line = rng.uniform(-1, 1, (2, 2))
-    return lambda x: np.sign(
+    f = lambda x: np.sign(
         x[:, -1] - line[0, 1] 
         - np.divide(*(line[1] - line[0])[::-1]) * (x[:, -2] - line[0, 0])
     )
+    return f if x is None else f(x)
 
 def generate_data(
         N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]], 
@@ -389,6 +397,7 @@ def linear_regression(
 
     if rng is None:
         rng = np.random.default_rng(seed)
+
     if x is None:
         x, y = generate_data(N, f, bias=True, rng=rng)
     elif y is None:
@@ -440,20 +449,31 @@ def linear_regression(
     return (w, (vf(w, x, y), vf(w, x_validate, y_validate)), 
             vf(w, x_test, y_test))[1 - hyp:]
 
-def target_function_hw2() -> Callable[[np.ndarray[float]], np.ndarray[float]]:
+def target_function_hw2(
+        x: np.ndarray[float] = None
+    ) -> Union[Callable[[np.ndarray[float]], np.ndarray[float]],
+               np.ndarray[float]]:
 
     """
     Implements the target function 
     f(x_1, x_2) = sgn(x_1^2 + x_2^2 - 0.6).
 
+    Parameters
+    ----------
+    x : `numpy.ndarray`, optional
+        Inputs x_n, which contain the x- and y-coordinates in the last
+        two columns.
+
     Returns
     -------
-    f : `function`
-        Target function f as a function of the inputs x, which contain
-        the constant bias and the x- and y-coordinates.
+    f : `function` or `numpy.ndarray`
+        If `x=None`, a target function f as a function of the inputs x, 
+        which contain the x- and y-coordinates in the last two columns.
+        If x_n is provided in x, the outputs y_n.
     """
     
-    return lambda x: np.sign((x[:, 1:] ** 2).sum(axis=1) - 0.6)
+    f = lambda x: np.sign((x[:, -2:] ** 2).sum(axis=1) - 0.6)
+    return f if x is None else f(x)
 
 ### HOMEWORK 4 ################################################################
 
@@ -808,6 +828,14 @@ def support_vector_machine(
     y_test : `numpy.ndarray`, keyword-only, optional
         Test outputs y_n.
 
+    x_validate : `numpy.ndarray`, keyword-only, optional
+        Validation inputs x_n. If not specified, no validation is
+        performed.
+
+    y_validate : `numpy.ndarray`, keyword-only, optional
+        Validation outputs y_n. If not specified, no validation is
+        performed.
+
     clf : `sklearn.svm.SVC`, keyword-only, optional
         Support vector machine classifier.
 
@@ -864,3 +892,32 @@ def support_vector_machine(
             else (1 - clf.score(x_test[:, is_linear_kernel:], y_test))
         )[1 - hyp:]
     return (N_sv, 1 - clf.score(x_test, y_test))
+
+### FINAL EXAM ################################################################
+
+def target_function_fe(
+        x: np.ndarray[float]
+    ) -> Union[Callable[[np.ndarray[float]], np.ndarray[float]],
+               np.ndarray[float]]:
+
+    """
+    Implements the target function 
+    f(x_1, x_2) = sgn(x_2 - x_1 + 0.5 * sin(pi * x_1)).
+
+    Parameters
+    ----------
+    x : `numpy.ndarray`
+        Inputs x_n, which contain the x- and y-coordinates in the last
+        two columns.
+
+    Returns
+    -------
+    f : `function` or `numpy.ndarray`
+        If `x=None`, a target function f as a function of the inputs x, 
+        which contain the x- and y-coordinates in the last two columns.
+        If x_n is provided in x, the outputs y_n.
+    """
+
+    f = lambda x: np.sign(np.diff(x[:, -2:], axis=1) 
+                          + 0.5 * np.sin(np.pi * x[:, -1:]))
+    return f if x is None else f(x)
