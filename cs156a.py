@@ -3,8 +3,132 @@ from typing import Callable, Union
 import numpy as np
 from scipy import optimize
 from sklearn import svm
+from sklearn.cluster import k_means
 
-### HOMEWORK 1 ################################################################
+### Homework 1 ################################################################
+
+class Perceptron:
+
+    """
+    Perceptron.
+
+    Parameters
+    ----------
+    w : `numpy.ndarray`, optional
+        Hypothesis w. If not provided, a vector with all zeros will be
+        initialized during training.
+
+    vf : `function`, optional
+        Validation function as a function of w, x, and y.
+
+    Attributes
+    ----------
+    iters : `int`
+        Number of iterations required for the perceptron to converge.
+
+    w : `numpy.ndarray`
+        Hypothesis w.
+
+    vf : `function`
+        Validation function as a function of w, x, and y.
+    """
+
+    def __init__(
+            self, w: np.ndarray[float] = None, *, 
+            vf: Callable[[np.ndarray[float], np.ndarray[float],
+                          np.ndarray[float]], 
+                         np.ndarray[float]] = None
+        ) -> None:
+        
+        self.set_parameters(w, vf=vf)
+
+    def get_error(self, x: np.ndarray[float], y: np.ndarray[float]) -> float:
+        
+        """
+        Get in-sample or out-of-sample error using a validation or test
+        data set, respectively.
+
+        Parameters
+        ----------
+        x : `numpy.ndarray`
+            Inputs x.
+
+        y : `numpy.ndarray`
+            Outputs y.
+
+        Returns
+        -------
+        E : `float`
+            In-sample error E_in or out-of-sample error E_out.
+        """
+        
+        if self.vf is not None and self.w is not None:
+            return self.vf(self.w, x, y)
+
+    def set_parameters(
+            self, w: np.ndarray[float] = None, *,
+            vf: Callable[[np.ndarray[float], np.ndarray[float],
+                          np.ndarray[float]], 
+                         np.ndarray[float]] = None,
+            update: bool = False) -> None:
+
+        """
+        Set perceptron parameters.
+
+        Parameters
+        ----------
+        w : `numpy.ndarray`, optional
+            Hypothesis w. If not provided, a vector with all zeros will
+            be initialized during training.
+
+        vf : `function`, keyword-only, optional
+            Validation function as a function of w, x, and y.
+
+        update : `bool`, keyword-only, default: False
+            If True, only arguments that are not None will be updated.
+            If False, all parameters will be overwritten.
+        """
+
+        if update:
+            self.vf = vf or self.vf
+            self._w = self._w if w is None else w
+        else:
+            self.vf = vf
+            self._w = w
+
+    def train(self, x: np.ndarray[float], y: np.ndarray[float]) -> float:
+
+        """
+        Train the perceptron using a training data set.
+
+        Parameters
+        ----------
+        x : `numpy.ndarray`
+            Inputs x.
+
+        y : `numpy.ndarray`
+            Outputs y.
+
+        Returns
+        -------
+        iters : `int`
+            Number of iterations required for the perceptron to 
+            converge.
+        """
+        
+        self.iters = 0
+        self.w = (np.zeros(x.shape[1], dtype=float) if self._w is None 
+                  else self._w)
+        while True:
+            wrong = np.argwhere(np.sign(x @ self.w) != y)[:, 0]
+            if wrong.size == 0:
+                break
+            index = np.random.choice(wrong)
+            self.w += y[index] * x[index]
+            self.iters += 1
+
+        if self.vf:
+            return self.vf(self.w, x, y)
 
 def target_function_random_line(
         x: np.ndarray[float] = None, *, rng: np.random.Generator = None, 
@@ -21,26 +145,28 @@ def target_function_random_line(
     Parameters
     ----------
     x : `numpy.ndarray`, optional
-        Inputs x_n, which contain the x- and y-coordinates in the last two
-        columns.
+        Inputs x, which contain the x_1- and x_2-coordinates in the last
+        two columns.
 
     rng : `numpy.random.Generator`, keyword-only, optional
         A NumPy pseudo-random number generator.
 
     seed : `int`, keyword-only, optional
-        Random seed used to initialize a pseudo-random number generator.
-        Only used if `rng=None`.
+        Random seed used to initialize the pseudo-random number
+        generator. Only used if `rng=None`.
 
     Returns
     -------
     f : `function` or `numpy.ndarray`
         If `x=None`, a target function f as a function of the inputs x, 
-        which contain the x- and y-coordinates in the last two columns.
-        If x_n is provided in x, the outputs y_n.
+        which contain the x_1- and x_2-coordinates in the last two 
+        columns, is returned. If x is provided, the outputs y is 
+        returned.
     """
     
     if rng is None:
         rng = np.random.default_rng(seed)
+
     line = rng.uniform(-1, 1, (2, 2))
     f = lambda x: np.sign(
         x[:, -1] - line[0, 1] 
@@ -83,20 +209,21 @@ def generate_data(
         A NumPy pseudo-random number generator.
 
     seed : `int`, keyword-only, optional
-        Random seed used to initialize a pseudo-random number generator.
-        Only used if `rng=None`.
+        Random seed used to initialize the pseudo-random number 
+        generator. Only used if `rng=None`.
 
     Returns
     -------
     inputs : `numpy.ndarray`
-        Inputs x_n.
+        Inputs x.
 
     outputs : `numpy.ndarray`
-        Outputs y_n.
+        Outputs y.
     """
 
     if rng is None:
         rng = np.random.default_rng(seed)
+
     x = rng.uniform(lb, ub, (N, d))
     if bias:
         x = np.hstack((np.ones((N, 1)), x))
@@ -116,116 +243,218 @@ def validate_binary(
         Hypothesis w.
 
     x : `numpy.ndarray`
-        Inputs x_n.
+        Inputs x.
 
     y : `numpy.ndarray`
-        Outputs y_n.
+        Outputs y.
 
     Returns
     -------
-    error : `float`
-        In-sample or out-of-sample error.
+    E : `float`
+        In-sample error E_in or out-of-sample error E_out.
     """
     
     return np.count_nonzero(np.sign(x @ w) != y, axis=0) / x.shape[0]
 
-def perceptron(
-        N: int = None,
-        f: Callable[[np.ndarray[float]], np.ndarray[float]] = None, 
-        vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
-                     np.ndarray[float]] = None,
-        *, w: np.ndarray[float] = None, x: np.ndarray[float] = None, 
-        y: np.ndarray[float] = None, N_test: int = 1_000, 
-        x_test: np.ndarray[float] = None, y_test: np.ndarray[float] = None,
-        rng: np.random.Generator = None, seed: int = None, hyp: bool = False
-    ) -> tuple[int, float]:
-    
+### Homework 2 ################################################################
+
+class LinearRegression:
+
     """
-    Implements the perceptron learning algorithm (PLA) for a target 
-    function operating on a d-dimensional data set D.
+    Linear regression model.
 
     Parameters
     ----------
-    N : `int`, optional
-        Number of random data points.
-
-    f : `function`, optional
-        Target function f as a function of the inputs x.
-
     vf : `function`, optional
         Validation function as a function of w, x, and y.
 
-    w : `numpy.ndarray`, keyword-only, optional
-        Hypothesis w. If not provided, a vector is initialized with all
-        zeros.
+    regularization : `str`, optional
+        Regularization function for the hypothesis w.
+        
+        **Valid values**: 
+        
+        * :code:`"weight_decay"`: Weight decay regularization. Specify
+          lambda in keyword argument `weight_decay_lambda`.
 
-    x : `numpy.ndarray`, keyword-only, optional
-        Inputs x_n.
+    transform : `function`, optional
+        Nonlinear transformation function for the inputs x.
 
-    y : `numpy.ndarray`, keyword-only, optional
-        Outputs y_n.
+    noise : `tuple`, optional
+        Fraction of outputs y to introduce noise to and the
+        noise function.
 
-    N_test : `int`, keyword-only, default: 1_000
-        Number of random test data points.
-
-    x_test : `numpy.ndarray`, keyword-only, optional
-        Test inputs x_n.
-
-    y_test : `numpy.ndarray`, keyword-only, optional
-        Test outputs y_n.
-
-    rng : `numpy.random.Generator`, keyword-only, optional
+    rng : `numpy.random.Generator`, optional
         A NumPy pseudo-random number generator.
 
-    seed : `int`, keyword-only, optional
+    seed : `int`, optional
         Random seed used to initialize a pseudo-random number generator.
         Only used if `rng=None`.
 
-    hyp : `bool`, keyword-only, default: False
-        Determines whether the hypothesis w is returned.
-        
-    Returns
-    -------
-    iters : `int`
-        Number of iterations required for the PLA to converge to a
-        formula g.
+    Attributes
+    ----------
+    w : `numpy.ndarray`
+        Hypothesis w.
 
-    prob : `float`
-        Estimated misclassification rate P[f(x) != g(x)]. Only returned
-        if `vf` is provided.
+    vf : `function`
+        Validation function as a function of w, x, and y.
+
+    regularization : `str`
+        Regularization function for the hypothesis w.
+
+    transform : `function`
+        Nonlinear transformation function for the inputs x.
+
+    noise : `tuple`
+        Fraction of outputs y to introduce noise to and the
+        noise function.
+
+    rng : `numpy.random.Generator`
+        A NumPy pseudo-random number generator.
     """
 
-    if rng is None:
-        rng = np.random.default_rng(seed)
-    if x is None:
-        x, y = generate_data(N, f, bias=True, rng=rng)
-    elif y is None:
-        y = f(x)
-    if w is None:
-        w = np.zeros(x.shape[1], dtype=float)
+    def __init__(
+            self, *,
+            vf: Callable[[np.ndarray[float], np.ndarray[float], 
+                          np.ndarray[float]], 
+                         np.ndarray[float]] = None,
+            regularization: str = None,
+            transform: Callable[[np.ndarray[float]], np.ndarray[float]] = None,
+            noise: tuple[float, Callable[[np.ndarray[float]], 
+                                         np.ndarray[float]]] = None,
+            rng: np.random.Generator = None, seed: int = None, **kwargs
+        ) -> None:
 
-    iters = 0
-    while True:
-        wrong = np.argwhere(np.sign(x @ w) != y)[:, 0]
-        if wrong.size == 0:
-            break
-        i = np.random.choice(wrong)
-        w += y[i] * x[i]
-        iters += 1
+        self.rng = np.random.default_rng(seed) if rng is None else rng
+        self.set_parameters(vf=vf, regularization=regularization, 
+                            transform=transform, noise=noise, **kwargs)
 
-    if vf is None:
-        return (w, iters)[1 - hyp:]
+    def get_error(self, x: np.ndarray[float], y: np.ndarray[float]) -> float:
 
-    if x_test is None:
-        x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
-    elif y_test is None:
-        y_test = f(x_test)
-    return (w, iters, vf(w, x_test, y_test))[1 - hyp:]
+        """
+        Get in-sample or out-of-sample error using a validation or test
+        data set, respectively.
 
-### HOMEWORK 2 ################################################################
+        Parameters
+        ----------
+        x : `numpy.ndarray`
+            Inputs x.
+
+        y : `numpy.ndarray`
+            Outputs y.
+
+        Returns
+        -------
+        E : `float`
+            In-sample error E_in or out-of-sample error E_out.
+        """
+
+        if self.transform:
+            x = self.transform(x)
+        if self.noise:
+            N = x.shape[0]
+            index = self.rng.choice(N, round(self.noise[0] * N), False)
+            y[index] = self.noise[1](y[index])
+
+        if self.vf is not None and self.w is not None:
+            return self.vf(self.w, x, y)
+
+    def set_parameters(
+            self, *,
+            vf: Callable[[np.ndarray[float], np.ndarray[float], 
+                          np.ndarray[float]], 
+                         np.ndarray[float]] = None,
+            regularization: str = None, 
+            transform: Callable[[np.ndarray[float]], np.ndarray[float]] = None, 
+            noise: tuple[float, Callable[[np.ndarray[float]], 
+                                         np.ndarray[float]]] = None,
+            update: bool = False, **kwargs) -> None:
+        
+        """
+        Set linear regression model parameters.
+
+        Parameters
+        ----------
+        vf : `function`, keyword-only, optional
+            Validation function as a function of w, x, and y.
+
+        regularization : `str`, keyword-only, optional
+            Regularization function for the hypothesis w.
+            
+            **Valid values**: 
+            
+            * :code:`"weight_decay"`: Weight decay regularization. Specify
+              lambda in keyword argument `weight_decay_lambda`.
+
+        transform : `function`, keyword-only, optional
+            Nonlinear transformation function for the inputs x.
+
+        noise : `tuple`, keyword-only, optional
+            Fraction of outputs y to introduce noise to and the
+            noise function.
+
+        update : `bool`, keyword-only, default: False
+            If True, only arguments that are not None will be updated.
+            If False, all parameters will be overwritten.
+        """
+
+        self._reg_params = {}       
+        self.w = None
+
+        if update:
+            self.noise = noise or self.noise
+            self.regularization = regularization or self.regularization
+            if self.regularization == "weight_decay" \
+                    and "weight_decay_lambda" in kwargs:
+                self._reg_params["lambda"] = kwargs["weight_decay_lambda"]
+            self.transform = transform or self.transform
+            self.vf = vf or self.vf
+        else:
+            self.noise = noise
+            self.regularization = regularization
+            if regularization == "weight_decay":
+                self._reg_params["lambda"] = kwargs["weight_decay_lambda"]
+            self.transform = transform
+            self.vf = vf
+
+    def train(self, x: np.ndarray[float], y: np.ndarray[float]) -> float:
+
+        """
+        Train the linear regression model using a training data set.
+
+        Parameters
+        ----------
+        x : `numpy.ndarray`
+            Inputs x.
+
+        y : `numpy.ndarray`
+            Outputs y.
+
+        Returns
+        -------
+        E : `float`
+            In-sample error E_in.
+        """
+
+        if self.transform:
+            x = self.transform(x)
+        if self.noise:
+            N = x.shape[0]
+            index = self.rng.choice(N, round(self.noise[0] * N), False)
+            y[index] = self.noise[1](y[index])
+        
+        if self.regularization is None:
+            self.w = np.linalg.pinv(x) @ y
+        elif self.regularization == "weight_decay":
+            self.w = np.linalg.inv(
+                x.T @ x 
+                + self._reg_params["lambda"] * np.eye(x.shape[1], dtype=float)
+            ) @ x.T @ y
+        
+        if self.vf is not None:
+            return self.vf(self.w, x, y)
 
 def coin_flip(
-        n_trials: int = 1, n_coins: int = 1_000, n_flips: int = 10, *,
+        N_trials: int = 1, N_coins: int = 1_000, N_flips: int = 10, *,
         rng: np.random.Generator = None, seed: int = None
     ) -> np.ndarray[float]:
     
@@ -234,13 +463,13 @@ def coin_flip(
 
     Parameters
     ----------
-    n_trials : `int`, default: 1
+    N_trials : `int`, default: 1
         Number of trials.
 
-    n_coins : `int`, default: 1_000
+    N_coins : `int`, default: 1_000
         Number of coins to flip.
 
-    n_flips : `int`, default: 10
+    N_flips : `int`, default: 10
         Number of times to flip each coin.
 
     rng : `numpy.random.Generator`, keyword-only, optional
@@ -261,14 +490,15 @@ def coin_flip(
     if rng is None:
         rng = np.random.default_rng(seed)
     heads = np.count_nonzero(
-        rng.uniform(size=(n_trials, n_coins, n_flips)) < 0.5, axis=2
+        rng.uniform(size=(N_trials, N_coins, N_flips)) < 0.5, 
+        axis=2
     ) # [0.0, 0.5) is heads, [0.5, 1.0) is tails
-    i = np.arange(n_trials)
+    indices = np.arange(N_trials)
     return np.stack((
         heads[:, 0],
-        heads[i, rng.integers(n_coins, size=n_trials)],
-        heads[i, np.argmin(heads, axis=1)],
-    )) / n_flips
+        heads[indices, rng.integers(N_coins, size=N_trials)],
+        heads[indices, np.argmin(heads, axis=1)],
+    )) / N_flips
 
 def hoeffding_inequality(
         N: int, eps: float | np.ndarray[float], *, M: int = 1) -> float:
@@ -290,166 +520,7 @@ def hoeffding_inequality(
 
     return 2 * M * np.exp(-2 * eps ** 2 * N)
 
-def linear_regression(
-        N: int = None, 
-        f: Callable[[np.ndarray[float]], np.ndarray[float]] = None,
-        vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
-                     np.ndarray[float]] = None,
-        *, x: np.ndarray[float] = None, y: np.ndarray[float] = None,
-        transform: Callable[[np.ndarray[float]], np.ndarray[float]] = None, 
-        noise: tuple[float, 
-                     Callable[[np.ndarray[float]], np.ndarray[float]]] = None,
-        regularization: str = None, N_test: int = 1_000, 
-        x_test: np.ndarray[float] = None, y_test: np.ndarray[float] = None,
-        x_validate: np.ndarray[float] = None, 
-        y_validate: np.ndarray[float] = None, rng: np.random.Generator = None,
-        seed: int = None, hyp: bool = False, **kwargs
-    ) -> tuple[np.ndarray[float], float | tuple[float], float]:
-
-    """
-    Implements the linear regression algorithm for a target function
-    operating on a d-dimensional data set D.
-
-    Parameters
-    ----------
-    N : `int`, optional
-        Number of random data points.
-
-    f : `function`, optional
-        Target function f as a function of the inputs x.
-
-    vf : `function`, optional
-        Validation function as a function of w, x, and y.
-
-    x : `numpy.ndarray`, keyword-only, optional
-        Inputs x_n. If a nonlinear transformation is expected, the
-        original inputs should be provided here and the transformation
-        function in `transform`.
-
-    y : `numpy.ndarray`, keyword-only, optional
-        Outputs y_n. If noise is to be introduced, the original outputs
-        should be provided here, and the noise fraction and function in
-        `noise`.
-
-    transform : `function`, keyword-only, default: None
-        Nonlinear transformation function for the inputs x.
-
-    noise : `tuple`, keyword-only, default: 0.0
-        Fraction of outputs y to introduce noise to and the
-        transformation function.
-
-    regularization : `str`, optional
-        Regularization function for the hypothesis w.
-        
-        **Valid values**: 
-        
-        * :code:`"weight_decay"`: Weight decay regularization. Specify
-          lambda in keyword argument "wd_lambda".
-
-    N_test : `int`, keyword-only, default: 1_000
-        Number of random test data points.
-
-    x_test : `numpy.ndarray`, keyword-only, optional
-        Test inputs x_n. If a nonlinear transformation is expected, the
-        original inputs should be provided here and the transformation
-        function in `transform`.
-
-    y_test : `numpy.ndarray`, keyword-only, optional
-        Test outputs y_n. If noise is to be introduced, the original 
-        outputs should be provided here, and the noise fraction and 
-        function in `noise`.
-
-    x_validate : `numpy.ndarray`, keyword-only, optional
-        Validation inputs x_n. If a nonlinear transformation is 
-        expected, the original inputs should be provided here and the
-        transformation function in `transform`. If not specified, no
-        validation is performed.
-
-    y_validate : `numpy.ndarray`, keyword-only, optional
-        Validation outputs y_n. If noise is to be introduced, the 
-        original outputs should be provided here, and the noise fraction
-        and function in `noise`. If not specified, no validation is
-        performed.
-
-    rng : `numpy.random.Generator`, keyword-only, optional
-        A NumPy pseudo-random number generator.
-
-    seed : `int`, keyword-only, optional
-        Random seed used to initialize a pseudo-random number generator.
-        Only used if `rng=None`.
-
-    hyp : `bool`, keyword-only, default: False
-        Determines whether the hypothesis w is returned.
-
-    Returns
-    -------
-    w : `numpy.ndarray`
-        Hypothesis w. Only available if `hyp=True`.
-
-    E_in : `float` or `tuple`
-        In-sample error E_in. If `x_validate` and `y_validate` are
-        provided, the errors for the test and validation sets are
-        returned here. Only returned if `vf` is provided.
-
-    E_out : `float`
-        Out-of-sample error E_out. Only returned if `vf` is provided.
-    """
-
-    if rng is None:
-        rng = np.random.default_rng(seed)
-
-    if x is None:
-        x, y = generate_data(N, f, bias=True, rng=rng)
-    elif y is None:
-        N = x.shape[0]
-        y = f(x)
-    else:
-        N = x.shape[0]
-    if transform:
-        x = transform(x)
-    if noise:
-        i = rng.choice(N, round(noise[0] * N), False)
-        y[i] = noise[1](y[i])
-
-    if regularization is None:
-        w = np.linalg.pinv(x) @ y
-    elif regularization == "weight_decay":
-        w = np.linalg.inv(
-            x.T @ x + kwargs["wd_lambda"] * np.eye(x.shape[1], dtype=float)
-        ) @ x.T @ y
-    
-    if vf is None:
-        return w
-    
-    if x_test is None or y_test is None:
-        if f is None:
-            return (w, vf(w, x, y))[1 - hyp:]
-        if x_test is None:
-            x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
-        elif y_test is None:
-            N_test = x_test.shape[0]
-            y_test = f(x_test)
-    else:
-        N_test = x_test.shape[0]
-    if transform:
-        x_test = transform(x_test)
-    if noise:
-        i = rng.choice(N_test, round(noise[0] * N_test), False)
-        y_test[i] = noise[1](y_test[i])
-
-    if x_validate is None or y_validate is None:
-        return (w, vf(w, x, y), vf(w, x_test, y_test))[1 - hyp:]
-    
-    N_validate = len(y_validate)
-    if transform:
-        x_validate = transform(x_validate)
-    if noise:
-        i = rng.choice(N_validate, round(noise[0] * N_validate), False)
-        y_validate[i] = noise[1](y_validate[i])
-    return (w, (vf(w, x, y), vf(w, x_validate, y_validate)), 
-            vf(w, x_test, y_test))[1 - hyp:]
-
-def target_function_hw2(
+def target_function_homework_2(
         x: np.ndarray[float] = None
     ) -> Union[Callable[[np.ndarray[float]], np.ndarray[float]],
                np.ndarray[float]]:
@@ -461,21 +532,22 @@ def target_function_hw2(
     Parameters
     ----------
     x : `numpy.ndarray`, optional
-        Inputs x_n, which contain the x- and y-coordinates in the last
-        two columns.
+        Inputs x, which contain the x_1- and x_2-coordinates in the 
+        last two columns.
 
     Returns
     -------
     f : `function` or `numpy.ndarray`
         If `x=None`, a target function f as a function of the inputs x, 
-        which contain the x- and y-coordinates in the last two columns.
-        If x_n is provided in x, the outputs y_n.
+        which contain the x_1- and x_2-coordinates in the last two 
+        columns, is returned. If x is provided, the outputs y is 
+        returned.
     """
     
     f = lambda x: np.sign((x[:, -2:] ** 2).sum(axis=1) - 0.6)
     return f if x is None else f(x)
 
-### HOMEWORK 4 ################################################################
+### Homework 4 ################################################################
 
 def vapnik_chervonenkis_bound(
         m_H: Callable[[np.ndarray[float]], np.ndarray[float]],
@@ -575,8 +647,8 @@ def parrondo_van_den_broek_bound(
 
 def devroye_bound(
         m_H: Callable[[np.ndarray[float]], np.ndarray[float]],
-        N: np.ndarray[float], delta: float, *, ub: float = 10.0,
-        log: bool = False) -> np.ndarray[float]:
+        N: np.ndarray[np.longdouble], delta: float, *, ub: float = 10.0
+    ) -> np.ndarray[np.longdouble]:
 
     """
     Computes the generalization error bound(s) using the 
@@ -590,8 +662,8 @@ def devroye_bound(
         provided here instead.
     
     N : `numpy.ndarray`
-        Sample size(s). Must be provided as floating-point numbers to
-        prevent integer overflow.
+        Sample size(s). Must be provided as 128-bit floating-point 
+        numbers to prevent integer overflow.
 
     delta : `float`
         Confidence parameter delta.
@@ -610,18 +682,21 @@ def devroye_bound(
         Generalization error bound(s) |E_out - E_in|.
     """
 
-    func = lambda eps, N: np.sqrt(
-        (4 * eps * (1 + eps) + np.log(4 / delta) 
-         + (m_H(N ** 2) if log else np.log(m_H(N ** 2)))) / (2 * N)
-    ) - eps
     return np.vectorize(
-        lambda N: optimize.root_scalar(func, args=N, bracket=(0.0, ub), 
-                                       method="toms748").root
+        lambda N: optimize.root_scalar(
+            lambda eps, N: np.sqrt(
+                (4 * eps * (1 + eps) + np.log(4 / delta) + np.log(m_H(N ** 2)))
+                / (2 * N)
+            ) - eps,
+            args=N, 
+            bracket=(0.0, ub), 
+            method="toms748"
+        ).root
     )(N)
 
-### HOMEWORK 5 ################################################################
+### Homework 5 ################################################################
 
-def gradient_descent(
+def gradient_descent( #
         E: Callable[[np.ndarray[float]], float],
         dE: Callable[[np.ndarray[float]], np.ndarray[float]],
         x: np.ndarray[float], *, eta: float = 0.1, tol: float = 1e-14,
@@ -666,7 +741,7 @@ def gradient_descent(
         iters += 1
     return x, iters
 
-def coordinate_descent(
+def coordinate_descent( #
         E: Callable[[np.ndarray[float]], float],
         dE_dx: tuple[Callable[[np.ndarray[float]], float]],
         x: np.ndarray[float], *, eta: float = 0.1, tol: float = 1e-14,
@@ -713,7 +788,7 @@ def coordinate_descent(
         iters += 1
     return x, iters
 
-def stochastic_gradient_descent(
+def stochastic_gradient_descent( #
         N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]], 
         eta: float = 0.01, tol: float = 0.01, *, N_test: int = 1_000,
         rng: np.random.Generator = None, seed: int = None, hyp: bool = False
@@ -783,9 +858,9 @@ def stochastic_gradient_descent(
     E_out = np.log(1 + np.exp(-y_test[:, None] * x_test @ w)).mean()
     return (w, epoch, E_out)[1 - hyp:]
 
-### HOMEWORK 7 ################################################################
+### Homework 7 ################################################################
 
-def support_vector_machine(
+def support_vector_machine( #
         N: int = None, 
         f: Callable[[np.ndarray[float]], np.ndarray[float]] = None,
         vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
@@ -893,31 +968,190 @@ def support_vector_machine(
         )[1 - hyp:]
     return (N_sv, 1 - clf.score(x_test, y_test))
 
-### FINAL EXAM ################################################################
+### Final Exam ################################################################
 
-def target_function_fe(
+class RBFRegular:
+
+    """
+    Radial basis function (RBF) network in regular form (Lloyd + 
+    pseudo-inverse) with K centers.
+
+    Parameters
+    ----------
+    gamma : `float`
+        Kernel coefficient gamma.
+
+    K : `int`
+        Number of clusters to form or number of centroids to generate.
+
+    vf : `function`, keyword-only, optional
+        Validation function as a function of w, phi, and y.
+
+    Attributes
+    ----------
+    centers : `numpy.ndarray`
+        Centers.
+
+    gamma : `float`
+        Kernel coefficient gamma.
+
+    K : `int`
+        Number of clusters to form or number of centroids to generate.
+
+    vf : `function`
+        Validation function as a function of w, phi, and y.
+
+    w : `numpy.ndarray`
+        Hypothesis w.
+    """
+
+    def __init__(
+            self, gamma: float, K: int, *,
+            vf: Callable[[np.ndarray[float], np.ndarray[float], 
+                          np.ndarray[float]],
+                         np.ndarray[float]] = None) -> None:
+        
+        self.set_parameters(gamma, K, vf=vf)
+
+    def get_error(self, x: np.ndarray[float], y: np.ndarray[float]) -> float:
+        
+        """
+        Get in-sample or out-of-sample error using a validation or test
+        data set, respectively.
+
+        Parameters
+        ----------
+        x : `numpy.ndarray`
+            Inputs x.
+
+        y : `numpy.ndarray`
+            Outputs y.
+
+        Returns
+        -------
+        E : `float`
+            In-sample error E_in or out-of-sample error E_out.
+        """
+        
+        if self.vf is not None and self.w is not None:
+            return self.vf(self.w, self.get_phi(x, self.centers), y)
+
+    def get_phi(
+            self, x: np.ndarray[float], centers: np.ndarray[float]
+        ) -> np.ndarray[float]:
+
+        """
+        Get the input vector phi for a given input x.
+
+        Parameters
+        ----------
+        x : `numpy.ndarray`
+            Inputs x.
+
+        centers : `numpy.ndarray`
+            Centers.
+
+        Returns
+        -------
+        phi : `numpy.ndarray`
+            Input vector phi.
+        """
+        
+        return np.hstack((
+            np.ones((x.shape[0], 1), dtype=float), 
+            np.exp(-self.gamma 
+                   * np.linalg.norm((x[:, None] - centers), axis=2) ** 2)
+        ))
+
+    def set_parameters(
+            self, gamma: float, K: int, *, 
+            vf: Callable[[np.ndarray[float], np.ndarray[float],
+                          np.ndarray[float]],
+                         np.ndarray[float]] = None,
+            update: bool = False) -> None:
+
+        """
+        Set RBF network parameters and reset centers and weights from
+        previous training.
+
+        Parameters
+        ----------
+        gamma : `float`
+            Kernel coefficient gamma.
+
+        K : `int`
+            Number of clusters to form or number of centroids to
+            generate.
+
+        vf : `function`, keyword-only, optional
+            Validation function as a function of w, phi, and y.
+
+        update : `bool`, keyword-only, default: False
+            If True, only arguments that are not None will be updated.
+            If False, all parameters will be overwritten.
+        """
+        
+        self.centers = None
+        self.w = None
+        if update:
+            self.gamma = gamma or self.gamma
+            self.K = K or self.K
+            self.vf = vf or self.vf
+        else:
+            self.gamma = gamma
+            self.K = K
+            self.vf = vf
+
+    def train(self, x: np.ndarray[float], y: np.ndarray[float]) -> float:
+
+        """
+        Train the RBF network using a training data set.
+
+        Parameters
+        ----------
+        x : `numpy.ndarray`
+            Training inputs x.
+
+        y : `numpy.ndarray`
+            Training outputs y.
+
+        Returns
+        -------
+        E_in : `float`
+            In-sample error E_in.
+        """
+        
+        self.centers = k_means(x, self.K, n_init="auto")[0]
+        phi = self.get_phi(x, self.centers)
+        self.w = np.linalg.pinv(phi) @ y
+
+        if self.vf is not None:
+            return self.vf(self.w, phi, y)
+
+def target_function_final_exam(
         x: np.ndarray[float]
     ) -> Union[Callable[[np.ndarray[float]], np.ndarray[float]],
                np.ndarray[float]]:
 
     """
     Implements the target function 
-    f(x_1, x_2) = sgn(x_2 - x_1 + 0.5 * sin(pi * x_1)).
+    f(x_1, x_2) = sgn(x_2 - x_1 + 0.25 * sin(pi * x_1)).
 
     Parameters
     ----------
     x : `numpy.ndarray`
-        Inputs x_n, which contain the x- and y-coordinates in the last
+        Inputs x, which contain the x_1- and x_2-coordinates in the last
         two columns.
 
     Returns
     -------
     f : `function` or `numpy.ndarray`
         If `x=None`, a target function f as a function of the inputs x, 
-        which contain the x- and y-coordinates in the last two columns.
-        If x_n is provided in x, the outputs y_n.
+        which contain the x_1- and x_2-coordinates in the last two 
+        columns, is returned. If x is provided, the outputs y is 
+        returned.
     """
 
-    f = lambda x: np.sign(np.diff(x[:, -2:], axis=1) 
-                          + 0.5 * np.sin(np.pi * x[:, -1:]))
+    f = lambda x: np.sign(np.diff(x[:, -2:], axis=1)[:, 0]
+                          + 0.25 * np.sin(np.pi * x[:, -1]))
     return f if x is None else f(x)

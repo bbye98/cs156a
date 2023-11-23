@@ -11,18 +11,20 @@ import pathlib
 import sys
 
 import numpy as np
+import pandas as pd
 import requests
 
 CWD = pathlib.Path(__file__).resolve()
 sys.path.insert(0, str(CWD.parents[2]))
-from cs156a import linear_regression, validate_binary
+from cs156a import LinearRegression, validate_binary
 
 DATA_DIR = (CWD.parents[2] / "data").resolve()
 
 if __name__ == "__main__":
     rng = np.random.default_rng()
 
-    # Problems 2–6
+    ### Problems 2–6 ###########################################################
+
     DATA_DIR.mkdir(exist_ok=True)
     data = {"train": "in.dta", "test": "out.dta"}
     for dataset, file in data.items():
@@ -41,22 +43,19 @@ if __name__ == "__main__":
         np.abs(x[:, :1] - x[:, 1:]), 
         np.abs(x[:, :1] + x[:, 1:])
     ))
-
-    print("\n[HW6 P2–6]\nLinear regression (without regularization) "
-        "statistics:")
-    E_in, E_out = linear_regression(
-        vf=validate_binary, x=data["train"][:, :-1], y=data["train"][:, -1],
-        transform=transform, x_test=data["test"][:, :-1], 
-        y_test=data["test"][:, -1], rng=rng
-    )
-    print(f"  {E_in=:.3f}, {E_out=:.3f}")
-    print("Linear regression (with weight decay regularization using "
-          "lambda=10^k) statistics:")
-    for k in (ks := np.arange(-5, 7)):
-        E_in, E_out = linear_regression(
-            vf=validate_binary, x=data["train"][:, :-1], y=data["train"][:, -1],
-            transform=transform, regularization="weight_decay", 
-            wd_lambda=10.0 ** k, x_test=data["test"][:, :-1], 
-            y_test=data["test"][:, -1], rng=rng
-        )
-        print(f"  {k=}: {E_in=:.3f}, {E_out=:.3f}")
+    reg = LinearRegression(vf=validate_binary, transform=transform, rng=rng)
+    E_in = reg.train(data["train"][:, :-1], data["train"][:, -1])
+    E_out = reg.get_error(data["test"][:, :-1], data["test"][:, -1])
+    print("\n[Homework 6 Problem 2]\n",
+          "For the linear regression model without regularization, the "
+          f"in-sample and out-of-sample errors are {E_in:.5f} and "
+          f"{E_out:.5f}, respectively.", sep="")
+    
+    df = pd.DataFrame(columns=["k", "in-sample error", "out-of-sample error"])
+    for k in np.arange(-5, 7):
+        reg.set_parameters(regularization="weight_decay",
+                           weight_decay_lambda=10.0 ** k, update=True)
+        E_in = reg.train(data["train"][:, :-1], data["train"][:, -1])
+        df.loc[len(df)] = (k, E_in, reg.get_error(data["test"][:, :-1],
+                                                  data["test"][:, -1]))
+    print(f"\n[Homework 6 Problems 3–6]\n{df.to_string(index=False)}")

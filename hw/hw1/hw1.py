@@ -7,24 +7,39 @@ October 2, 2023
 Homework 1
 """
 
-import pathlib
+from pathlib import Path
 import sys
 
 import numpy as np
+import pandas as pd
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
-from cs156a import target_function_random_line, validate_binary, perceptron
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from cs156a import (Perceptron, target_function_random_line, generate_data,
+                    validate_binary)
     
 if __name__ == "__main__":
-    # Problems 7–10
+
     rng = np.random.default_rng()
-    n_runs = 1_000
-    print(f"\n[HW1 P7–10]\nPLA statistics over {n_runs:,} runs:")
-    for N in (10, 100):
-        iters, prob = np.mean(
-            [perceptron(N, target_function_random_line(rng=rng), 
-                        validate_binary, rng=rng)
-             for _ in range(n_runs)], 
-            axis=0
-        )
-        print(f"  {N=:,}, {iters=:,.0f}, {prob=:.3f}")
+
+    ### Problems 7–10 #########################################################
+
+    N_runs = 1_000
+    pla = Perceptron(vf=validate_binary)
+    columns = ["number of points", "number of iterations", 
+               "misclassification rate"]
+    df = pd.DataFrame(columns=columns)
+    for N_train in (10, 100):
+        N_test = 9 * N_train
+        counters = np.zeros(2, dtype=float)
+        for _ in range(N_runs):
+            vf = target_function_random_line(rng=rng)
+            x_train, y_train = generate_data(N_train, vf, bias=True, rng=rng)
+            x_test, y_test = generate_data(N_test, vf, bias=True, rng=rng)
+            pla.train(x_train, y_train)
+            counters += (pla.iters, pla.get_error(x_test, y_test))
+        df.loc[len(df)] = (N_train, *(counters / N_runs))
+    print("\n[Homework 1 Problems 7–10]\n"
+          f"Perceptron learning algorithm ({N_runs:,} runs):\n",
+          df.to_string(index=False, 
+                       formatters={c: "{:.0f}".format for c in columns[:2]}),
+          sep="")

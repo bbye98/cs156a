@@ -25,7 +25,7 @@ DATA_DIR = (CWD.parents[2] / "data").resolve()
 if __name__ == "__main__":
     rng = np.random.default_rng()
 
-    # SVM with Soft Margins
+    # Problems 2–4
     DATA_DIR.mkdir(exist_ok=True)
     data = {}
     for dataset in ["train", "test"]:
@@ -36,7 +36,6 @@ if __name__ == "__main__":
                 f.write(r.content)
         data[dataset] = np.loadtxt(DATA_DIR / file)
 
-    # Problems 2–4
     C = 0.01
     Q = 2
     print(f"\n[HW8 P2–4]\nSVM with soft margins ({C=}) "

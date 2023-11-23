@@ -17,8 +17,9 @@ from sklearn import svm
 CWD = pathlib.Path(__file__).resolve()
 sys.path.insert(0, str(CWD.parents[2]))
 from cs156a import (
-    linear_regression, validate_binary, target_function_random_line, 
-    generate_data, perceptron, support_vector_machine
+    LinearRegression, Perceptron, 
+    validate_binary, target_function_random_line, 
+    generate_data, support_vector_machine
 )
 
 DATA_DIR = (CWD.parents[2] / "data").resolve()
@@ -48,25 +49,19 @@ if __name__ == "__main__":
         lambda x: np.abs(x[:, :1] - x[:, 1:]), 
         lambda x: np.abs(x[:, :1] + x[:, 1:])
     )
+    reg = LinearRegression(
+        vf=validate_binary, 
+        transform=lambda x: np.hstack(tuple(f(x) for f in transform_funcs[:k])),
+        rng=rng
+    )
     for i in range(2):
         print(f"Linear regression statistics for {ns[i]}:{ns[1 - i]} split:")
         for k in np.arange(3, 8):
-            w, E_in, E_out = linear_regression(
-                vf=validate_binary, 
-                x=data[i][:, :-1],
-                y=data[i][:, -1],
-                transform=lambda x: np.hstack(
-                    tuple(f(x) for f in transform_funcs[:k])
-                ),
-                x_test=raw_data["out"][:, :-1], 
-                y_test=raw_data["out"][:, -1], 
-                x_validate=data[1 - i][:, :-1],
-                y_validate=data[1 - i][:, -1],
-                rng=rng,
-                hyp=True
-            )
-            print(f"  {k=}, E_in_test={E_in[0]:.3f}, "
-                  f"E_in_validate={E_in[1]:.3f}, {E_out=:.3f}")
+            E_in = reg.train(data[i][:, :-1], data[i][:, -1])
+            E_in_validate = reg.get_error(data[1 - i][:, :-1], data[1 - i][:, -1])
+            E_out = reg.get_error(raw_data["out"][:, :-1], raw_data["out"][:, -1])
+            print(f"  {k=}, E_in_test={E_in:.3f}, "
+                  f"E_in_validate={E_in_validate:.3f}, {E_out=:.3f}")
 
     # Problem 6
     x = rng.uniform(size=(10_000_000, 2))
@@ -83,8 +78,10 @@ if __name__ == "__main__":
     print(f"\n[HW7 P8–10]\nPLA vs. SVM with hard margins over {N_runs:,} runs:")
     f = target_function_random_line(rng=rng)
     clf = svm.SVC(C=np.finfo(float).max, kernel="linear")
+    pla = Perceptron(vf=validate_binary)
     for N in Ns:
         prob_svm = 0
+        prob_svm_ = 0
         N_sv_avg = 0
         for _ in range(N_runs):
             while True:
@@ -92,8 +89,8 @@ if __name__ == "__main__":
                 if not np.allclose(y, y[0]):
                     break
             x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
-            _, E_out_pla = perceptron(N, f, vf=validate_binary, x=x, y=y, 
-                                      x_test=x_test, y_test=y_test, rng=rng)
+            pla.train(x, y)
+            E_out_pla = pla.get_error(x_test, y_test)
             N_sv, E_out_svm = support_vector_machine(
                 N, f, vf=validate_binary, x=x, y=y, x_test=x_test, y_test=y_test,
                 clf=clf, rng=rng
@@ -103,3 +100,5 @@ if __name__ == "__main__":
         prob_svm /= N_runs
         N_sv_avg /= N_runs
         print(f"  {N=}, {prob_svm=:.3f}, {N_sv_avg=:.3f}")
+
+    debug=True
