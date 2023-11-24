@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-
-"""
-Benjamin Ye
-CS/CNE/EE 156a: Learning Systems (Fall 2023)
-November 20, 2023
-Homework 8
-"""
-
 from pathlib import Path
 
 import numpy as np
@@ -31,8 +22,6 @@ if __name__ == "__main__":
                 f.write(r.content)
         data[dataset] = np.loadtxt(DATA_DIR / file)
 
-    ### Problems 2–4 ###########################################################
-
     C = 0.01
     Q = 2
     clf = svm.SVC(C=C, kernel="poly", degree=Q, gamma=1, coef0=1)
@@ -52,8 +41,6 @@ if __name__ == "__main__":
     print("\n[Homework 8 Problems 2–4]\n"
           f"Soft margin ({C=}) SVM with polynomial kernel ({Q=}):\n",
           df.to_string(index=False), sep="")
-
-    ### Problems 5–6 ###########################################################
 
     x_train = data["train"][np.isin(data["train"][:, 0], (1, 5))]
     y_train = 2 * (x_train[:, 0] == 1) - 1
@@ -75,8 +62,6 @@ if __name__ == "__main__":
           "1 vs. 5 classifier:\n",
           df.to_string(index=False), sep="")
 
-    ### Problems 7–8 ##########################################################
-
     Q = 2
     N_runs = 100
     N_folds = 10
@@ -97,8 +82,6 @@ if __name__ == "__main__":
           f"Cross-validation error for soft margin ({C=}) SVM with "
           f"polynomial kernel ({Q=}) for 1 vs. 5 classifier:\n",
           df.to_string(index=False), sep="")
-    
-    ### Problems 9–10 #########################################################
 
     df = pd.DataFrame(columns=["C", "in-sample error", "out-of-sample error"])
     for C in (0.01, 1, 100, 1e4, 1e6):

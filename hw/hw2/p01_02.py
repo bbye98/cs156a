@@ -27,7 +27,9 @@ if __name__ == "__main__":
     nus = coin_flip(N_trials, N_coins, N_flips, rng=rng)
     coins = ("first coin", "random coin", "min. frequency of heads")
     df = pd.DataFrame({"coin": coins, "fraction of heads": nus.mean(axis=1)})
-    print(f"\n[Homework 2 Problem 1]\n{df.to_string(index=False)}")
+    print(f"\n[Homework 2 Problem 1]\n"
+          f"{N_trials:,} trials, {N_coins:,} coins, {N_flips:,} flips:\n",
+          df.to_string(index=False), sep="")
 
     epsilons = np.linspace(0, 0.5, 6)
     histograms = np.apply_along_axis(
@@ -44,4 +46,5 @@ if __name__ == "__main__":
         data[coins[i]] = probabilities[i]
         data[i * " "] = satisfies[i]
     print("\n[Homework 2 Problem 2]\n"
-          f"{pd.DataFrame(data).to_string(index=False)}")
+          "Hoeffding inequality:\n",
+          pd.DataFrame(data).to_string(index=False), sep="")

@@ -73,7 +73,8 @@ if __name__ == "__main__":
                          reg_transform.get_error(x_test, y_test))
     print("\n[Final Exam Problems 7–9]\n"
           "Linear regression with regularization "
-          f"(lambda={weight_decay_lambda}):\n", df)
+          f"(lambda={weight_decay_lambda}):\n", df.to_string(index=False), 
+          sep="")
 
     subset_train = data["train"][np.isin(data["train"][:, 0], (1, 5))]
     x_train = np.hstack((np.ones((subset_train.shape[0], 1), dtype=float), 
@@ -93,7 +94,7 @@ if __name__ == "__main__":
                            reg_transform.get_error(x_test, y_test))
     print("\n[Final Exam Problem 10]\n"
           "Linear regression with regularization and transform for "
-          "1 vs. 5 classifier:\n", df)
+          "1 vs. 5 classifier:\n", df.to_string(index=False), sep="")
 
     ### Problems 11–12 ########################################################
 
@@ -129,8 +130,8 @@ if __name__ == "__main__":
     N_runs = 100
     N_train = 100
     N_test = 1_000
-    columns = ["gamma", "K", "% nonseparable", "% outperform", 
-               "% E_in=0", "E_in", "E_out"]
+    columns = ["gamma", "K", "nonseparable", "outperform", 
+               "E_in=0", "E_in", "E_out"]
     df = pd.DataFrame(columns=columns)
     for gamma, K in [(1.5, 9), (1.5, 12), (2, 9)]:
         clf = svm.SVC(C=np.finfo(float).max, gamma=gamma)
@@ -151,7 +152,7 @@ if __name__ == "__main__":
             counters[1:5] += (1 - clf.score(x_test, y_test) < E_out, 
                               E_in == 0, E_in, E_out)
         counters /= N_runs
-        counters[:3] *= 100
         df.loc[len(df)] = gamma, K, *counters
     print("\n[Final Exam Problems 13–18]\n"
-          f"Radial basis function (RBF) model ({N_runs:,} runs):\n", df)
+          f"Radial basis function (RBF) model ({N_runs:,} runs):\n", 
+          df.to_string(index=False), sep="")

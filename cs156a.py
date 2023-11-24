@@ -4,6 +4,7 @@ import numpy as np
 from scipy import optimize
 from sklearn import svm
 from sklearn.cluster import k_means
+from sklearn.utils import shuffle
 
 ### Homework 1 ################################################################
 
@@ -696,7 +697,139 @@ def devroye_bound(
 
 ### Homework 5 ################################################################
 
-def gradient_descent( #
+class StochasticGradientDescent:
+
+    """
+    Stochastic gradient descent algorithm.
+
+    Parameters
+    ----------
+    eta : `float`, default: 0.01
+        Learning rate eta.
+
+    tol : `float`, default: 0.01
+        Tolerance for the norm of the change in the hypothesis w.
+
+    rng : `numpy.random.Generator`, optional
+        A NumPy pseudo-random number generator.
+
+    seed : `int`, optional
+        Random seed used to initialize a pseudo-random number generator.
+
+    Attributes
+    ----------
+    epochs : `int`
+        Number of epochs required for the stochastic gradient descent
+        algorithm to converge to w.
+
+    w : `numpy.ndarray`
+        Hypothesis w.
+
+    vf : `function`
+        Validation function as a function of w, x, and y.
+
+    eta : `float`
+        Learning rate eta.
+
+    tol : `float`
+        Tolerance for the norm of the change in the hypothesis w.
+
+    rng : `numpy.random.Generator`
+        A NumPy pseudo-random number generator.
+    """
+
+    def __init__(
+            self, eta: float = 0.01, tol: float = 0.01, *, 
+            rng: np.random.Generator = None, seed: int = None
+        ) -> None:
+
+        self.rng = np.random.default_rng(seed) if rng is None else rng
+        self.vf = lambda w, x, y: np.log(1 + np.exp(-y[:, None] * x @ w)).mean()
+        self.set_parameters(eta, tol)
+
+    def get_error(self, x: np.ndarray[float], y: np.ndarray[float]) -> float:
+
+        """
+        Get in-sample or out-of-sample error using a validation or test
+        data set, respectively.
+
+        Parameters
+        ----------
+        x : `numpy.ndarray`
+            Inputs x.
+
+        y : `numpy.ndarray`
+            Outputs y.
+
+        Returns
+        -------
+        E : `float`
+            In-sample error E_in or out-of-sample error E_out.
+        """
+
+        if self.w is not None:
+            return self.vf(self.w, x, y)
+
+    def set_parameters(
+            self, eta: float = None, tol: float = None, update: bool = False
+        ) -> None:
+
+        """
+        Set stochastic gradient descent parameters.
+        
+        Parameters
+        ----------
+        eta : `float`, optional
+            Learning rate eta.
+            
+        tol : `float`, optional
+            Tolerance for the norm of the change in the hypothesis w.
+
+        update : `bool`, keyword-only, default: False
+            If True, only arguments that are not None will be updated.
+            If False, all parameters will be overwritten.
+        """
+        
+        if update:
+            self.eta = eta or self.eta
+            self.tol = tol or self.tol
+        else:
+            self.eta = eta
+            self.tol = tol
+
+    def train(self, x: np.ndarray[float], y: np.ndarray[float]) -> float:
+
+        """
+        Train the RBF network using a training data set.
+
+        Parameters
+        ----------
+        x : `numpy.ndarray`
+            Training inputs x.
+
+        y : `numpy.ndarray`
+            Training outputs y.
+
+        Returns
+        -------
+        E_in : `float`
+            In-sample error E_in.
+        """
+
+        self.w = np.zeros(x.shape[1], dtype=float)
+        self.epochs = 0
+        while True:
+            w = self.w.copy()
+            for x_, y_ in zip(*shuffle(x, y)):
+                w += self.eta * y_ * x_ / (1 + np.exp(y_ * x_ @ w))
+            dw = w - self.w
+            self.w = w.copy()
+            self.epochs += 1
+            if np.linalg.norm(dw) < self.tol:
+                break
+        return self.vf(self.w, x, y)
+
+def gradient_descent(
         E: Callable[[np.ndarray[float]], float],
         dE: Callable[[np.ndarray[float]], np.ndarray[float]],
         x: np.ndarray[float], *, eta: float = 0.1, tol: float = 1e-14,
@@ -741,7 +874,7 @@ def gradient_descent( #
         iters += 1
     return x, iters
 
-def coordinate_descent( #
+def coordinate_descent(
         E: Callable[[np.ndarray[float]], float],
         dE_dx: tuple[Callable[[np.ndarray[float]], float]],
         x: np.ndarray[float], *, eta: float = 0.1, tol: float = 1e-14,
@@ -787,186 +920,6 @@ def coordinate_descent( #
             x[i] -= eta * dE_dx[i](x)
         iters += 1
     return x, iters
-
-def stochastic_gradient_descent( #
-        N: int, f: Callable[[np.ndarray[float]], np.ndarray[float]], 
-        eta: float = 0.01, tol: float = 0.01, *, N_test: int = 1_000,
-        rng: np.random.Generator = None, seed: int = None, hyp: bool = False
-    ) -> tuple[np.ndarray[float], float, float]:
-    
-    """
-    Implements the stochastic gradient descent algorithm for a target 
-    function operating on a d-dimensional data set D.
-
-    Parameters
-    ----------
-    N : `int`
-        Number of random data points.
-
-    f : `function`
-        Target function f as a function of the inputs x.
-
-    eta : `float`, default: 0.01
-        Learning rate eta.
-
-    tol : `float`, default: 0.01
-        Tolerance for the norm of the change in the hypothesis w.
-
-    N_test : `int`, keyword-only, default: 1_000
-        Number of random test data points.
-
-    rng : `numpy.random.Generator`, keyword-only, optional
-        A NumPy pseudo-random number generator.
-
-    seed : `int`, keyword-only, optional
-        Random seed used to initialize a pseudo-random number generator.
-        Only used if `rng=None`.
-
-    hyp : `bool`, keyword-only, default: False
-        Determines whether the hypothesis w is returned.
-
-    Returns
-    -------
-    w : `numpy.ndarray`
-        Hypothesis w.
-
-    epoch : `int`
-        Number of epochs required for the stochastic gradient descent
-        algorithm to converge to w.
-
-    E_out : `float`
-        Out-of-sample error E_out.
-    """
-
-    if rng is None:
-        rng = np.random.default_rng(seed)
-    xs, ys = generate_data(N, f, bias=True, rng=rng)
-    w = np.zeros(xs.shape[1], dtype=float)
-    epoch = 0
-    while True:
-        _w = w.copy()
-        ri = rng.permutation(np.arange(N))
-        for x, y in zip(xs[ri], ys[ri]):
-            _w += eta * y * x / (1 + np.exp(y * x @ _w))
-        dw = _w - w
-        w = _w
-        epoch += 1
-        if np.linalg.norm(dw) < tol:
-            break
-    
-    x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
-    E_out = np.log(1 + np.exp(-y_test[:, None] * x_test @ w)).mean()
-    return (w, epoch, E_out)[1 - hyp:]
-
-### Homework 7 ################################################################
-
-def support_vector_machine( #
-        N: int = None, 
-        f: Callable[[np.ndarray[float]], np.ndarray[float]] = None,
-        vf: Callable[[np.ndarray[float], np.ndarray[float], np.ndarray[float]],
-                     np.ndarray[float]] = None,
-        *, x: np.ndarray[float] = None, y: np.ndarray[float] = None,
-        N_test: int = 1_000, x_test: np.ndarray[float] = None, 
-        y_test: np.ndarray[float] = None, clf: svm.SVC = None,
-        rng: np.random.Generator = None, seed: int = None, hyp: bool = False,
-        **kwargs) -> tuple[int, float]: 
-
-    """
-    Provides a wrapper around `sklearn.svm.SVC` to implement the
-    support vector machine (SVM) algorithm for a target function
-    operating on a d-dimensional data set D.
-
-    Parameters
-    ----------
-    N : `int`, optional
-        Number of random data points.
-
-    f : `function`, optional
-        Target function f as a function of the inputs x.
-
-    vf : `function`, optional
-        Validation function as a function of w, x, and y.
-
-    x : `numpy.ndarray`, keyword-only, optional
-        Inputs x_n. If :code:`kernel="linear"`, the first
-        column should be an array of ones for the constant bias term.
-
-    y : `numpy.ndarray`, keyword-only, optional
-        Outputs y_n.
-
-    N_test : `int`, keyword-only, default: 1_000
-        Number of random test data points.
-
-    x_test : `numpy.ndarray`, keyword-only, optional
-        Test inputs x_n.
-
-    y_test : `numpy.ndarray`, keyword-only, optional
-        Test outputs y_n.
-
-    x_validate : `numpy.ndarray`, keyword-only, optional
-        Validation inputs x_n. If not specified, no validation is
-        performed.
-
-    y_validate : `numpy.ndarray`, keyword-only, optional
-        Validation outputs y_n. If not specified, no validation is
-        performed.
-
-    clf : `sklearn.svm.SVC`, keyword-only, optional
-        Support vector machine classifier.
-
-    rng : `numpy.random.Generator`, keyword-only, optional
-        A NumPy pseudo-random number generator.
-
-    seed : `int`, keyword-only, optional
-        Random seed used to initialize a pseudo-random number generator.
-        Only used if `rng=None`.
-
-    hyp : `bool`, keyword-only, default: False
-        Determines whether the hypothesis w is returned.
-
-    Returns
-    -------
-    w : `numpy.ndarray`
-        Hypothesis w. Only available if `hyp=True` and 
-        :code:`kernel="linear"`.
-
-    N_sv : `int`
-        Number of support vectors.
-
-    E_out : `float`
-        Out-of-sample error E_out.
-    """
-
-    if clf is None:
-        clf = svm.SVC(**kwargs)
-    is_linear_kernel = clf.kernel == "linear"
-
-    if rng is None:
-        rng = np.random.default_rng(seed)
-    if y is None:
-        if x is None:
-            x, y = generate_data(N, f, bias=is_linear_kernel, rng=rng)
-        else:
-            y = f(x)
-
-    clf.fit(x[:, is_linear_kernel:], y)
-    N_sv = clf.n_support_.sum()
-
-    if x_test is None or y_test is None:
-        if x_test is None:
-            x_test, y_test = generate_data(N_test, f, bias=is_linear_kernel,
-                                           rng=rng)
-        else:
-            y_test = f(x_test)
-
-    if is_linear_kernel:
-        w = np.concatenate((clf.intercept_, clf.coef_[0]))
-        return (
-            w, N_sv, 
-            vf(w, x_test, y_test) if vf 
-            else (1 - clf.score(x_test[:, is_linear_kernel:], y_test))
-        )[1 - hyp:]
-    return (N_sv, 1 - clf.score(x_test, y_test))
 
 ### Final Exam ################################################################
 
@@ -1071,8 +1024,7 @@ class RBFRegular:
             update: bool = False) -> None:
 
         """
-        Set RBF network parameters and reset centers and weights from
-        previous training.
+        Set RBF network parameters.
 
         Parameters
         ----------
@@ -1091,8 +1043,6 @@ class RBFRegular:
             If False, all parameters will be overwritten.
         """
         
-        self.centers = None
-        self.w = None
         if update:
             self.gamma = gamma or self.gamma
             self.K = K or self.K

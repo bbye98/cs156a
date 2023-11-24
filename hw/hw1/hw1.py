@@ -32,12 +32,13 @@ if __name__ == "__main__":
         N_test = 9 * N_train
         counters = np.zeros(2, dtype=float)
         for _ in range(N_runs):
-            vf = target_function_random_line(rng=rng)
-            x_train, y_train = generate_data(N_train, vf, bias=True, rng=rng)
-            x_test, y_test = generate_data(N_test, vf, bias=True, rng=rng)
-            pla.train(x_train, y_train)
-            counters += (pla.iters, pla.get_error(x_test, y_test))
-        df.loc[len(df)] = (N_train, *(counters / N_runs))
+            f = target_function_random_line(rng=rng)
+            pla.train(*generate_data(N_train, f, bias=True, rng=rng))
+            counters += (
+                pla.iters, 
+                pla.get_error(*generate_data(N_test, f, bias=True, rng=rng))
+            )
+        df.loc[len(df)] = N_train, *(counters / N_runs)
     print("\n[Homework 1 Problems 7–10]\n"
           f"Perceptron learning algorithm ({N_runs:,} runs):\n",
           df.to_string(index=False, 

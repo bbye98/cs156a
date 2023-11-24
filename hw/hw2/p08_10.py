@@ -83,11 +83,8 @@ if __name__ == "__main__":
     reg = LinearRegression(vf=validate_binary, noise=noise, rng=rng)
     E_in = 0
     for _ in range(N_runs):
-        x_train, y_train = generate_data(N_train, target_function_homework_2,
-                                         bias=True, rng=rng)
-        x_test, y_test = generate_data(N_test, target_function_homework_2,
-                                       bias=True, rng=rng)
-        E_in += reg.train(x_train, y_train)
+        E_in += reg.train(*generate_data(N_train, target_function_homework_2,
+                                         bias=True, rng=rng))
     print("\n[Homework 2 Problem 8]\n"
           f"For the linear regression model with {noise[0]:.0%} noise, "
           f"the average in-sample error over {N_runs:,} runs is "
@@ -104,9 +101,8 @@ if __name__ == "__main__":
     reg.set_parameters(vf=validate_binary, transform=transform, noise=noise, 
                        update=True)
     for _ in range(N_runs):
-        x_train, y_train = generate_data(N_train, target_function_homework_2,
-                                         bias=True, rng=rng)
-        reg.train(x_train, y_train)
+        reg.train(*generate_data(N_train, target_function_homework_2,
+                                 bias=True, rng=rng))
         w += reg.w
     w /= N_runs
     counters = np.zeros(6, dtype=float)
@@ -117,7 +113,7 @@ if __name__ == "__main__":
         y_test[rng.choice(N_test, round(noise[0] * N_test), False)] *= -1
         h_test = np.sign(x_test @ w)
         counters += (*validate_binary(gs.T, x_test, h_test[:, None]),
-                    np.count_nonzero(h_test != y_test) / N_test)
+                     np.count_nonzero(h_test != y_test) / N_test)
     counters /= N_runs
     df = pd.DataFrame({
         "choice": [f"[{chr(97 + i)}]" for i in range(5)],
@@ -126,9 +122,10 @@ if __name__ == "__main__":
     })
     print("\n[Homework 2 Problem 9]\n"
           f"The average weight vector over {N_runs:,} runs is "
-          "w = [", ", ".join(f"{v:.6f}" for v in w), "].\n", 
+          "w=[", ", ".join(f"{v:.6f}" for v in w), "].\n\n"
+          "Closest hypothesis:\n",
           df.to_string(index=False), sep="")
-
+    
     print("\n[Homework 2 Problem 10]\n"
           f"The average out-of-sample error over {N_runs:,} runs is "
           f"{counters[5]:.6f}.")

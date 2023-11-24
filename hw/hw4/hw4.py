@@ -7,7 +7,7 @@ October 23, 2023
 Homework 4
 """
 
-import pathlib
+from pathlib import Path
 import sys
 
 import matplotlib as mpl
@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from cs156a import (
     vapnik_chervonenkis_bound, rademacher_bound, 
     parrondo_van_den_broek_bound, devroye_bound, generate_data
@@ -60,8 +60,8 @@ if __name__ == "__main__":
     ax.set_yscale("log")
     ylim = ax.get_ylim()
     for N in (10_000, 5):
-        index, = np.where(Ns == N)[0]
-        df.loc[len(df)] = (N, *[bound[index] for bound in bounds.values()])
+        df.loc[len(df)] = N, *[bound[np.where(Ns == N)[0][0]] 
+                               for bound in bounds.values()]
         ax.plot((N, N), ylim, "k:")
     ax.legend(title="Generalization bound")
     ax.set_xlabel("$N$")
@@ -69,7 +69,8 @@ if __name__ == "__main__":
     ax.set_ylabel("$\epsilon$")
     ax.set_ylim(ylim)
     plt.show()
-    print(f"\n[Homework 4 Problems 2–3]\n{df.to_string(index=False)}")
+    print("\n[Homework 4 Problems 2–3]\nGeneralization bounds:\n",
+          df.to_string(index=False), sep="")
 
     ### Problems 4–7 ##########################################################
 
@@ -144,5 +145,7 @@ if __name__ == "__main__":
         b_avg = None if bs is None else bs.mean()
         bias = f_bias(x_test, y_test, a_avg, b_avg)
         var = f_var(x_test, as_, a_avg, bs, b_avg)
-        df.loc[len(df)] = (f"[{chr(97 + i)}]", h, fmt(a_avg, b_avg), bias, var)
-    print(f"\n[Homework 4 Problems 4–7]\n{df.to_string(index=False)}")
+        df.loc[len(df)] = f"[{chr(97 + i)}]", h, fmt(a_avg, b_avg), bias, var
+    print("\n[Homework 4 Problems 4–7]\n"
+          "Learning algorithms for f(x)=sin(pi*x):\n",
+          df.to_string(index=False), sep="")

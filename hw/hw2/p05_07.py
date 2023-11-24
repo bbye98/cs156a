@@ -119,10 +119,11 @@ if __name__ == "__main__":
     reg = LinearRegression(vf=validate_binary, rng=rng)
     errors = np.zeros(2, dtype=float)
     for _ in range(N_runs):
-        x_train, y_train = generate_data(N_train, f, bias=True, rng=rng)
-        x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
-        E_in = reg.train(x_train, y_train)
-        errors += (E_in, reg.get_error(x_test, y_test))
+        E_in = reg.train(*generate_data(N_train, f, bias=True, rng=rng))
+        errors += (
+            E_in, 
+            reg.get_error(*generate_data(N_test, f, bias=True, rng=rng))
+        )
     errors /= N_runs
     print("\n[Homework 2 Problems 5–6]\n"
           "For the linear regression model, the average in-sample and "

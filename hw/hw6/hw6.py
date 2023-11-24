@@ -7,14 +7,14 @@ November 6, 2023
 Homework 6
 """
 
-import pathlib
+from pathlib import Path
 import sys
 
 import numpy as np
 import pandas as pd
 import requests
 
-CWD = pathlib.Path(__file__).resolve()
+CWD = Path(__file__).resolve()
 sys.path.insert(0, str(CWD.parents[2]))
 from cs156a import LinearRegression, validate_binary
 
@@ -56,6 +56,8 @@ if __name__ == "__main__":
         reg.set_parameters(regularization="weight_decay",
                            weight_decay_lambda=10.0 ** k, update=True)
         E_in = reg.train(data["train"][:, :-1], data["train"][:, -1])
-        df.loc[len(df)] = (k, E_in, reg.get_error(data["test"][:, :-1],
-                                                  data["test"][:, -1]))
-    print(f"\n[Homework 6 Problems 3–6]\n{df.to_string(index=False)}")
+        df.loc[len(df)] = k, E_in, reg.get_error(data["test"][:, :-1],
+                                                 data["test"][:, -1])
+    print("\n[Homework 6 Problems 3–6]\n"
+          "Linear regression with weight decay regularization:\n",
+          df.to_string(index=False), sep="")

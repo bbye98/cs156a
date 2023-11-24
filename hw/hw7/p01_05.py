@@ -21,6 +21,7 @@ class LinearRegression:
             N = x.shape[0]
             index = self.rng.choice(N, round(self.noise[0] * N), False)
             y[index] = self.noise[1](y[index])
+
         if self.vf is not None and self.w is not None:
             return self.vf(self.w, x, y)
 
@@ -69,38 +70,40 @@ if __name__ == "__main__":
     rng = np.random.default_rng()
 
     DATA_DIR.mkdir(exist_ok=True)
-    data = {"train": "in.dta", "test": "out.dta"}
-    for dataset, file in data.items():
-        if not (DATA_DIR / file).exists():
-            r = requests.get(f"http://work.caltech.edu/data/{file}")
-            with open(DATA_DIR / file, "wb") as f:
+    raw_data = {}
+    for prefix in ["in", "out"]:
+        if not (DATA_DIR / f"{prefix}.dta").exists():
+            r = requests.get(f"http://work.caltech.edu/data/{prefix}.dta")
+            with open(DATA_DIR / f"{prefix}.dta", "wb") as f:
                 f.write(r.content)
-        data[dataset] = np.loadtxt(DATA_DIR / file)
+        raw_data[prefix] = np.loadtxt(DATA_DIR / f"{prefix}.dta")
 
-    transform = lambda x: np.hstack((
-        np.ones((len(x), 1), dtype=float), 
-        x, 
-        x[:, :1] ** 2, 
-        x[:, 1:] ** 2, 
-        np.prod(x, axis=1, keepdims=True),
-        np.abs(x[:, :1] - x[:, 1:]), 
-        np.abs(x[:, :1] + x[:, 1:])
-    ))
-    reg = LinearRegression(vf=validate_binary, transform=transform, rng=rng)
-    E_in = reg.train(data["train"][:, :-1], data["train"][:, -1])
-    E_out = reg.get_error(data["test"][:, :-1], data["test"][:, -1])
-    print("\n[Homework 6 Problem 2]\n",
-          "For the linear regression model without regularization, the "
-          f"in-sample and out-of-sample errors are {E_in:.5f} and "
-          f"{E_out:.5f}, respectively.", sep="")
-    
-    df = pd.DataFrame(columns=["k", "in-sample error", "out-of-sample error"])
-    for k in np.arange(-5, 7):
-        reg.set_parameters(regularization="weight_decay",
-                           weight_decay_lambda=10.0 ** k, update=True)
-        E_in = reg.train(data["train"][:, :-1], data["train"][:, -1])
-        df.loc[len(df)] = k, E_in, reg.get_error(data["test"][:, :-1],
-                                                 data["test"][:, -1])
-    print("\n[Homework 6 Problems 3–6]\n"
-          "Linear regression with weight decay regularization:\n",
+    ns = (25, len(raw_data["in"]) - 25)
+    data = np.array_split(raw_data["in"], (ns[0],))
+    transforms = (
+        lambda x: np.ones((len(x), 1), dtype=float), 
+        lambda x: x,
+        lambda x: x[:, :1] ** 2, 
+        lambda x: x[:, 1:] ** 2, 
+        lambda x: np.prod(x, axis=1, keepdims=True), 
+        lambda x: np.abs(x[:, :1] - x[:, 1:]), 
+        lambda x: np.abs(x[:, :1] + x[:, 1:])
+    )
+    reg = LinearRegression(
+        vf=validate_binary, 
+        transform=lambda x: np.hstack(tuple(f(x) for f in transforms[:k])),
+        rng=rng
+    )
+    df = pd.DataFrame(columns=["split", "k", "training error", 
+                               "validation error", "out-of-sample error"])
+    for i in range(2):
+        for k in np.arange(3, 8):
+            E_train = reg.train(data[i][:, :-1], data[i][:, -1])
+            E_validate = reg.get_error(data[1 - i][:, :-1], data[1 - i][:, -1])
+            E_out = reg.get_error(raw_data["out"][:, :-1], 
+                                  raw_data["out"][:, -1])
+            df.loc[len(df)] = (f"{ns[i]}:{ns[1 - i]}", k, 
+                               E_train, E_validate, E_out)
+    print("\n[Homework 7 Problems 1–5]\n"
+          "Linear regression with nonlinear transformation:\n",
           df.to_string(index=False), sep="")

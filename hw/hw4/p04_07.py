@@ -82,5 +82,7 @@ if __name__ == "__main__":
         b_avg = None if bs is None else bs.mean()
         bias = f_bias(x_test, y_test, a_avg, b_avg)
         var = f_var(x_test, as_, a_avg, bs, b_avg)
-        df.loc[len(df)] = (f"[{chr(97 + i)}]", h, fmt(a_avg, b_avg), bias, var)
-    print(f"\n[Homework 4 Problems 4–7]\n{df.to_string(index=False)}")
+        df.loc[len(df)] = f"[{chr(97 + i)}]", h, fmt(a_avg, b_avg), bias, var
+    print("\n[Homework 4 Problems 4–7]\n"
+          "Learning algorithms for f(x)=sin(pi*x):\n",
+          df.to_string(index=False), sep="")

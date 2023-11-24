@@ -69,8 +69,8 @@ if __name__ == "__main__":
     ax.set_yscale("log")
     ylim = ax.get_ylim()
     for N in (10_000, 5):
-        index, = np.where(Ns == N)[0]
-        df.loc[len(df)] = (N, *[bound[index] for bound in bounds.values()])
+        df.loc[len(df)] = N, *[bound[np.where(Ns == N)[0][0]] 
+                               for bound in bounds.values()]
         ax.plot((N, N), ylim, "k:")
     ax.legend(title="Generalization bound")
     ax.set_xlabel("$N$")
@@ -78,4 +78,5 @@ if __name__ == "__main__":
     ax.set_ylabel("$\epsilon$")
     ax.set_ylim(ylim)
     plt.show()
-    print(f"\n[Homework 4 Problems 2–3]\n{df.to_string(index=False)}")
+    print("\n[Homework 4 Problems 2–3]\nGeneralization bounds:\n",
+          df.to_string(index=False), sep="")

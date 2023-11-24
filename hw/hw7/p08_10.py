@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-    
+from sklearn import svm
+
 class Perceptron:
     def __init__(self, w=None, *, vf=None):
         self.set_parameters(w, vf=vf)
@@ -57,23 +58,30 @@ if __name__ == "__main__":
     rng = np.random.default_rng()
 
     N_runs = 1_000
+    f = target_function_random_line(rng=rng)
     pla = Perceptron(vf=validate_binary)
-    columns = ["number of points", "number of iterations", 
-               "misclassification rate"]
-    df = pd.DataFrame(columns=columns)
+    clf = svm.SVC(C=np.finfo(float).max, kernel="linear")
+    df = pd.DataFrame(columns=["N", "SVM > perceptron",
+                               "number of support vectors"])
     for N_train in (10, 100):
-        N_test = 9 * N_train
+        N_test = 99 * N_train
         counters = np.zeros(2, dtype=float)
         for _ in range(N_runs):
-            f = target_function_random_line(rng=rng)
-            pla.train(*generate_data(N_train, f, bias=True, rng=rng))
+            while True:
+                x_train, y_train = generate_data(N_train, f, bias=True, 
+                                                 rng=rng)
+                if not np.allclose(y_train, y_train[0]):
+                    break
+            x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
+            pla.train(x_train, y_train)
+            clf.fit(x_train[:, 1:], y_train)
             counters += (
-                pla.iters, 
-                pla.get_error(*generate_data(N_test, f, bias=True, rng=rng))
+                1 - clf.score(x_test[:, 1:], y_test) 
+                    < pla.get_error(x_test, y_test),
+                clf.n_support_.sum()
             )
-        df.loc[len(df)] = (N_train, *(counters / N_runs))
-    print("\n[Homework 1 Problems 7–10]\n"
-          f"Perceptron learning algorithm ({N_runs:,} runs):\n",
-          df.to_string(index=False, 
-                       formatters={c: "{:.0f}".format for c in columns[:2]}),
-          sep="")
+        counters /= N_runs
+        df.loc[len(df)] = N_train, 100 * counters[0], counters[1]
+    print("\n[Homework 7 Problems 8–10]\n"
+          "Comparison of perceptron and support vector machine (SVM):\n",
+          df.to_string(index=False), sep="")

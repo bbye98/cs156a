@@ -7,13 +7,13 @@ October 9, 2023
 Homework 2
 """
 
-import pathlib
+from pathlib import Path
 import sys
 
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from cs156a import (Perceptron, LinearRegression,
                     coin_flip, hoeffding_inequality, 
                     target_function_random_line, target_function_homework_2,
@@ -31,7 +31,9 @@ if __name__ == "__main__":
     nus = coin_flip(N_trials, N_coins, N_flips, rng=rng)
     coins = ("first coin", "random coin", "min. frequency of heads")
     df = pd.DataFrame({"coin": coins, "fraction of heads": nus.mean(axis=1)})
-    print(f"\n[Homework 2 Problem 1]\n{df.to_string(index=False)}")
+    print(f"\n[Homework 2 Problem 1]\n"
+          f"{N_trials:,} trials, {N_coins:,} coins, {N_flips:,} flips:\n",
+          df.to_string(index=False), sep="")
 
     epsilons = np.linspace(0, 0.5, 6)
     histograms = np.apply_along_axis(
@@ -48,7 +50,8 @@ if __name__ == "__main__":
         data[coins[i]] = probabilities[i]
         data[i * " "] = satisfies[i]
     print("\n[Homework 2 Problem 2]\n"
-          f"{pd.DataFrame(data).to_string(index=False)}")
+          "Hoeffding inequality:\n",
+          pd.DataFrame(data).to_string(index=False), sep="")
 
     ### Problems 5–7 ##########################################################
 
@@ -59,10 +62,11 @@ if __name__ == "__main__":
     reg = LinearRegression(vf=validate_binary, rng=rng)
     errors = np.zeros(2, dtype=float)
     for _ in range(N_runs):
-        x_train, y_train = generate_data(N_train, f, bias=True, rng=rng)
-        x_test, y_test = generate_data(N_test, f, bias=True, rng=rng)
-        E_in = reg.train(x_train, y_train)
-        errors += (E_in, reg.get_error(x_test, y_test))
+        E_in = reg.train(*generate_data(N_train, f, bias=True, rng=rng))
+        errors += (
+            E_in, 
+            reg.get_error(*generate_data(N_test, f, bias=True, rng=rng))
+        )
     errors /= N_runs
     print("\n[Homework 2 Problems 5–6]\n"
           "For the linear regression model, the average in-sample and "
@@ -92,11 +96,8 @@ if __name__ == "__main__":
     reg = LinearRegression(vf=validate_binary, noise=noise, rng=rng)
     E_in = 0
     for _ in range(N_runs):
-        x_train, y_train = generate_data(N_train, target_function_homework_2,
-                                         bias=True, rng=rng)
-        x_test, y_test = generate_data(N_test, target_function_homework_2,
-                                       bias=True, rng=rng)
-        E_in += reg.train(x_train, y_train)
+        E_in += reg.train(*generate_data(N_train, target_function_homework_2,
+                                         bias=True, rng=rng))
     print("\n[Homework 2 Problem 8]\n"
           f"For the linear regression model with {noise[0]:.0%} noise, "
           f"the average in-sample error over {N_runs:,} runs is "
@@ -113,9 +114,8 @@ if __name__ == "__main__":
     reg.set_parameters(vf=validate_binary, transform=transform, noise=noise, 
                        update=True)
     for _ in range(N_runs):
-        x_train, y_train = generate_data(N_train, target_function_homework_2,
-                                         bias=True, rng=rng)
-        reg.train(x_train, y_train)
+        reg.train(*generate_data(N_train, target_function_homework_2,
+                                 bias=True, rng=rng))
         w += reg.w
     w /= N_runs
     counters = np.zeros(6, dtype=float)
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         y_test[rng.choice(N_test, round(noise[0] * N_test), False)] *= -1
         h_test = np.sign(x_test @ w)
         counters += (*validate_binary(gs.T, x_test, h_test[:, None]),
-                    np.count_nonzero(h_test != y_test) / N_test)
+                     np.count_nonzero(h_test != y_test) / N_test)
     counters /= N_runs
     df = pd.DataFrame({
         "choice": [f"[{chr(97 + i)}]" for i in range(5)],
@@ -135,7 +135,8 @@ if __name__ == "__main__":
     })
     print("\n[Homework 2 Problem 9]\n"
           f"The average weight vector over {N_runs:,} runs is "
-          "w = [", ", ".join(f"{v:.6f}" for v in w), "].\n", 
+          "w=[", ", ".join(f"{v:.6f}" for v in w), "].\n\n"
+          "Closest hypothesis:\n",
           df.to_string(index=False), sep="")
 
     print("\n[Homework 2 Problem 10]\n"

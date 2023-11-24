@@ -104,7 +104,8 @@ if __name__ == "__main__":
                          reg_transform.get_error(x_test, y_test))
     print("\n[Final Exam Problems 7–9]\n"
           "Linear regression with regularization "
-          f"(lambda={weight_decay_lambda}):\n", df)
+          f"(lambda={weight_decay_lambda}):\n", df.to_string(index=False), 
+          sep="")
     
     subset_train = data["train"][np.isin(data["train"][:, 0], (1, 5))]
     x_train = np.hstack((np.ones((subset_train.shape[0], 1), dtype=float), 
@@ -124,4 +125,4 @@ if __name__ == "__main__":
                            reg_transform.get_error(x_test, y_test))
     print("\n[Final Exam Problem 10]\n"
           "Linear regression with regularization and transform for "
-          "1 vs. 5 classifier:\n", df)
+          "1 vs. 5 classifier:\n", df.to_string(index=False), sep="")
