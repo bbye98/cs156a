@@ -2,7 +2,6 @@ from typing import Callable, Union
 
 import numpy as np
 from scipy import optimize
-from sklearn import svm
 from sklearn.cluster import k_means
 from sklearn.utils import shuffle
 
@@ -399,8 +398,6 @@ class LinearRegression:
         """
 
         self._reg_params = {}       
-        self.w = None
-
         if update:
             self.noise = noise or self.noise
             self.regularization = regularization or self.regularization

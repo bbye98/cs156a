@@ -28,8 +28,7 @@ class LinearRegression:
     def set_parameters(
             self, *, vf=None, regularization=None, transform=None, noise=None,
             update=False, **kwargs):
-        self._reg_params = {}       
-        self.w = None
+        self._reg_params = {}
         if update:
             self.noise = noise or self.noise
             self.regularization = regularization or self.regularization

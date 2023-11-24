@@ -24,7 +24,6 @@ class LinearRegression:
             self, *, vf=None, regularization=None, transform=None, noise=None,
             update=False, **kwargs):
         self._reg_params = {}       
-        self.w = None
         if update:
             self.noise = noise or self.noise
             self.regularization = regularization or self.regularization

@@ -21,8 +21,6 @@ class RBFRegular:
         ))
 
     def set_parameters(self, gamma, K, *, vf=None, update=False) :
-        self.centers = None
-        self.w = None
         if update:
             self.gamma = gamma or self.gamma
             self.K = K or self.K
