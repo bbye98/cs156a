@@ -14,11 +14,11 @@ import numpy as np
 import pandas as pd
 import requests
 
-CWD = Path(__file__).resolve()
+CWD = Path(__file__)
 sys.path.insert(0, str(CWD.parents[2]))
 from cs156a import LinearRegression, validate_binary
 
-DATA_DIR = (CWD.parents[2] / "data").resolve()
+DATA_DIR = CWD.parents[2] / "data"
 
 if __name__ == "__main__":
     rng = np.random.default_rng()

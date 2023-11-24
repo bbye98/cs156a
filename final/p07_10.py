@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-DATA_DIR = (Path(__file__).resolve().parents[1] / "data").resolve()
+DATA_DIR = Path(__file__).parents[1] / "data"
 RNG = np.random.default_rng()
 
 class LinearRegression:

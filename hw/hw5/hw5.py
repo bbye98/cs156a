@@ -13,7 +13,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).parents[2]))
 from cs156a import (StochasticGradientDescent, gradient_descent, 
                     coordinate_descent, target_function_random_line, 
                     generate_data)

@@ -26,12 +26,12 @@ mpl.rcParams.update(
     }
 )
 
-CWD = Path(__file__).resolve()
+CWD = Path(__file__)
 sys.path.insert(0, str(CWD.parents[1]))
 from cs156a import (LinearRegression, RBFRegular,
                     target_function_final_exam, generate_data, validate_binary)
 
-DATA_DIR = (CWD.parents[1] / "data").resolve()
+DATA_DIR = CWD.parents[1] / "data"
 RNG = np.random.default_rng()
 
 if __name__ == "__main__":
