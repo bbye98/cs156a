@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable
 
 import numpy as np
 from scipy import optimize
@@ -133,8 +133,7 @@ class Perceptron:
 def target_function_random_line(
         x: np.ndarray[float] = None, *, rng: np.random.Generator = None, 
         seed: int = None
-    ) -> Union[Callable[[np.ndarray[float]], np.ndarray[float]],
-               np.ndarray[float]]:
+    ) -> Callable[[np.ndarray[float]], np.ndarray[float]] | np.ndarray[float]:
 
     """
     Implements the target function f(x_1, x_2) = m * x_1 + b, where m
@@ -520,8 +519,7 @@ def hoeffding_inequality(
 
 def target_function_homework_2(
         x: np.ndarray[float] = None
-    ) -> Union[Callable[[np.ndarray[float]], np.ndarray[float]],
-               np.ndarray[float]]:
+    ) -> Callable[[np.ndarray[float]], np.ndarray[float]] | np.ndarray[float]:
 
     """
     Implements the target function 
@@ -1077,8 +1075,7 @@ class RBFRegular:
 
 def target_function_final_exam(
         x: np.ndarray[float]
-    ) -> Union[Callable[[np.ndarray[float]], np.ndarray[float]],
-               np.ndarray[float]]:
+    ) -> Callable[[np.ndarray[float]], np.ndarray[float]] | np.ndarray[float]:
 
     """
     Implements the target function 

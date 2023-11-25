@@ -5,6 +5,17 @@ exercise, and final exam for the Fall 2023 installment of CS/CNS/EE
 156a: Learning Systems taught by Professor Yaser Abu-Mostafa at the
 California Institute of Technology.
 
+## Pre-requisites
+
+Requires Python 3.10 and the following packages:
+
+* Matplotlib
+* NumPy
+* pandas
+* requests
+* scikit-learn
+* SciPy
+
 ## Repository Structure
 
 * The `cs156a.py` file in the main directory acts as a Python module with 
@@ -29,4 +40,5 @@ California Institute of Technology.
 Note that the `hw*.py` and `hw*.ipynb` files, `final.py`, and 
 `final.ipynb` import `cs156a.py`, while the `p**_**.py` files are 
 standalone Python scripts that only depend on the Python standard 
-library, Matplotlib, NumPy, pandas, scikit-learn, and/or SciPy.
+library, Matplotlib, NumPy, pandas, requests, scikit-learn, and/or 
+SciPy.
