@@ -59,5 +59,5 @@ if __name__ == "__main__":
     print("\n[Final Exam Problem 11]\n"
           "The second-order polynomial hard margin support machine "
           "(SVM) uses\n  - cvxopt.solvers.qp: "
-          f"{(np.array(solution['x']) > 1e-6).sum()} support vectors;\n"
+          f"{(~np.isclose(solution['x'], 0)).sum()} support vectors;\n"
           f"  - sklearn.svm.SVC: {clf.n_support_.sum()} support vectors.")

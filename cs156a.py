@@ -1,9 +1,14 @@
+import sys
 from typing import Callable
 
 import numpy as np
 from scipy import optimize
 from sklearn.cluster import k_means
 from sklearn.utils import shuffle
+
+PYTHON_VERSION = sys.version_info
+if PYTHON_VERSION.major < 3 or PYTHON_VERSION.minor < 10:
+    raise RuntimeError("Python 3.10 or higher is required.")
 
 ### Homework 1 ################################################################
 
