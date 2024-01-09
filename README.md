@@ -9,6 +9,7 @@ California Institute of Technology.
 
 Requires Python 3.10 and the following packages:
 
+* CVXOPT
 * Matplotlib
 * NumPy
 * pandas
@@ -18,10 +19,10 @@ Requires Python 3.10 and the following packages:
 
 ## Repository Structure
 
-* The `cs156a.py` file in the main directory acts as a Python module with 
-  helper functions that are used throughout the homework assignments and 
-  final exam.
-* The `hw` directory contains subsubdirectories for each homework 
+* The `cs156a.py` file in the main directory acts as a Python module 
+  with helper functions that are used throughout the homework 
+  assignments and final exam.
+* The `hw` directory contains subdirectories for each homework 
   assignment. Within the subdirectories, the `hw*.docx` and `hw*.pdf`
   files are the writeups, the `hw*.py` and `hw*.ipynb` files are
   functionally equivalent Python scripts and Jupyter Notebooks for the
@@ -40,5 +41,4 @@ Requires Python 3.10 and the following packages:
 Note that the `hw*.py` and `hw*.ipynb` files, `final.py`, and 
 `final.ipynb` import `cs156a.py`, while the `p**_**.py` files are 
 standalone Python scripts that only depend on the Python standard 
-library, Matplotlib, NumPy, pandas, requests, scikit-learn, and/or 
-SciPy.
+library and the pre-requisite packages listed above.
